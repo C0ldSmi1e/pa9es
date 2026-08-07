@@ -35,3 +35,8 @@ export const pagination = {
   defaultOffset: 0,
   maxLimit: 1000,
 };
+
+export const content = {
+  // Cap on one page's HTML, measured in UTF-8 bytes (what SQLite stores).
+  maxHtmlBytes: 1024 * 1024,
+};
