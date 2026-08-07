@@ -4,6 +4,7 @@ import { admin, username } from "better-auth/plugins";
 import { db } from "@/src/clients/drizzle";
 import * as schema from "@/src/clients/drizzle/schema";
 import { authConfig } from "@/src/config/settings";
+import { usernameSchema } from "@/src/schemas/user";
 
 const auth = betterAuth({
   secret: authConfig.secret,
@@ -15,7 +16,14 @@ const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [username(), admin()],
+  plugins: [
+    username({
+      minUsernameLength: 3,
+      maxUsernameLength: 63,
+      usernameValidator: (value) => usernameSchema.safeParse(value).success,
+    }),
+    admin(),
+  ],
 });
 
 export { auth };
