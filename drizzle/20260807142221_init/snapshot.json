@@ -1,7 +1,7 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "e9f294a3-7f15-40cd-80cd-510a546803b1",
+  "id": "5dbd6353-789b-44e4-8b18-1f17bb5f13a1",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -140,7 +140,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
@@ -240,7 +240,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
@@ -250,7 +250,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
@@ -330,7 +330,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
@@ -460,7 +460,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
@@ -470,7 +470,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
@@ -520,7 +520,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
@@ -530,7 +530,7 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "(cast(unixepoch('subsecond') * 1000 as integer))",
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
@@ -631,6 +631,20 @@
         {
           "value": "user_id",
           "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "account_userId_idx",
+      "entityType": "indexes",
+      "table": "account"
+    },
+    {
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false
         },
         {
           "value": "slug",
@@ -643,6 +657,34 @@
       "name": "project_user_id_slug_idx",
       "entityType": "indexes",
       "table": "project"
+    },
+    {
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "session_userId_idx",
+      "entityType": "indexes",
+      "table": "session"
+    },
+    {
+      "columns": [
+        {
+          "value": "identifier",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "verification_identifier_idx",
+      "entityType": "indexes",
+      "table": "verification"
     },
     {
       "columns": [
