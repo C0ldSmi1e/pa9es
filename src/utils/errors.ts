@@ -78,12 +78,15 @@ class UpstreamError extends Error {
   }
 }
 
-// Walks the `cause` chain for a Postgres SQLSTATE: drizzle wraps driver
-// errors in DrizzleQueryError, so the code lives on the wrapped original.
-const hasSqlState = (error: unknown, code: string): boolean => {
+// Walks the `cause` chain for a SQLite extended result code: better-sqlite3
+// throws a SqliteError carrying the code on `error.code`, and drizzle wraps
+// driver errors in a DrizzleQueryError whose own `code` is undefined — so the
+// code only ever appears on the wrapped original.
+const hasSqliteCode = (error: unknown, codes: readonly string[]): boolean => {
   let current: unknown = error;
   while (current instanceof Error) {
-    if ("code" in current && (current as { code?: string }).code === code) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === "string" && codes.includes(code)) {
       return true;
     }
     current = current.cause;
@@ -91,15 +94,19 @@ const hasSqlState = (error: unknown, code: string): boolean => {
   return false;
 };
 
-// Postgres unique-constraint violation (SQLSTATE 23505). Lets an action map a
-// uniqueness race that slipped past a pre-check to a ConflictError, not a 500.
-const isUniqueViolation = (error: unknown): boolean => hasSqlState(error, "23505");
+// SQLite unique-constraint violation. Lets an action map a uniqueness race
+// that slipped past a pre-check to a ConflictError, not a 500. A primary-key
+// collision reports under its own code rather than SQLITE_CONSTRAINT_UNIQUE,
+// but means the same thing here, so both count.
+const isUniqueViolation = (error: unknown): boolean =>
+  hasSqliteCode(error, ["SQLITE_CONSTRAINT_UNIQUE", "SQLITE_CONSTRAINT_PRIMARYKEY"]);
 
-// Postgres foreign-key violation (SQLSTATE 23503). Lets a check-then-delete
-// action map a reference that appeared between the check and the delete to
-// the same ConflictError its pre-check would have thrown.
+// SQLite foreign-key violation. Lets a check-then-delete action map a
+// reference that appeared between the check and the delete to the same
+// ConflictError its pre-check would have thrown. Only fires because the
+// connection sets `PRAGMA foreign_keys = ON` — see src/clients/drizzle/index.ts.
 const isForeignKeyViolation = (error: unknown): boolean =>
-  hasSqlState(error, "23503");
+  hasSqliteCode(error, ["SQLITE_CONSTRAINT_FOREIGNKEY"]);
 
 export {
   BadRequestError,
