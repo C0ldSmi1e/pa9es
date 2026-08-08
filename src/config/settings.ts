@@ -54,7 +54,7 @@ export const pagination = {
 
 export const content = {
   // Cap on one page's HTML, measured in UTF-8 bytes (what SQLite stores).
-  maxHtmlBytes: 1024 * 1024,
+  maxHtmlBytes: 5 * 1024 * 1024,
 };
 
 export const app = {
