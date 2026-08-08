@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { publishProject, unpublishProject } from "@/src/actions/projects";
-import { createSuccessResponse, errorToResponse } from "@/src/utils/create-response";
-import { requireUser } from "@/src/utils/session";
+import { publishProject, unpublishProject } from "@/src/server/actions/projects";
+import {
+  createSuccessResponse,
+  errorToResponse,
+} from "@/src/server/create-response";
+import { requireUser } from "@/src/server/session";
 
 type RouteContext = { params: Promise<{ projectId: string }> };
 

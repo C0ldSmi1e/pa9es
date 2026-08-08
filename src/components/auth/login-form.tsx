@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/src/clients/auth";
+import { authClient } from "@/src/lib/auth-client";
 
 const inputClass =
   "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none " +

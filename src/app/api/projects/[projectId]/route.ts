@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteProject, getProject, updateProject } from "@/src/actions/projects";
+import {
+  deleteProject,
+  getProject,
+  updateProject,
+} from "@/src/server/actions/projects";
 import { updateProjectSchema } from "@/src/schemas/project";
-import { createSuccessResponse, errorToResponse } from "@/src/utils/create-response";
-import { parseRequest, readJsonBody } from "@/src/utils/parse-request";
-import { requireUser } from "@/src/utils/session";
+import {
+  createSuccessResponse,
+  errorToResponse,
+} from "@/src/server/create-response";
+import { parseRequest, readJsonBody } from "@/src/server/parse-request";
+import { requireUser } from "@/src/server/session";
 
 type RouteContext = { params: Promise<{ projectId: string }> };
 

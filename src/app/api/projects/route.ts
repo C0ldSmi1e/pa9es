@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createProject, listProjects } from "@/src/actions/projects";
+import { createProject, listProjects } from "@/src/server/actions/projects";
 import { createProjectSchema } from "@/src/schemas/project";
 import { paginationQuerySchema } from "@/src/schemas/standard-response";
-import { createSuccessResponse, errorToResponse } from "@/src/utils/create-response";
-import { parseRequest, readJsonBody } from "@/src/utils/parse-request";
-import { requireUser } from "@/src/utils/session";
+import {
+  createSuccessResponse,
+  errorToResponse,
+} from "@/src/server/create-response";
+import { parseRequest, readJsonBody } from "@/src/server/parse-request";
+import { requireUser } from "@/src/server/session";
 
 const GET = async (request: NextRequest) => {
   try {

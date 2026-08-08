@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
-import { auth } from "@/src/config/auth";
-import { AuthenticationError, AuthorizationError } from "@/src/utils/errors";
+import { auth } from "@/src/server/auth";
+import { AuthenticationError, AuthorizationError } from "@/src/server/errors";
 
 // Current session ({ session, user }), or null when unauthenticated.
 const getSession = async () => {

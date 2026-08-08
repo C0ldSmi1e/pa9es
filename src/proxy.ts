@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { app, authConfig } from "@/src/config/settings";
+import { app, authConfig } from "@/src/server/env";
 
 // Canonical app origin = BETTER_AUTH_URL. Session cookies and Better Auth's
 // Origin checks are bound to it, so app traffic on any other app-shaped host

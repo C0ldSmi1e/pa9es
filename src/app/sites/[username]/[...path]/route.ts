@@ -1,7 +1,7 @@
-import { getPublishedPage } from "@/src/actions/projects";
+import { getPublishedPage } from "@/src/server/actions/projects";
 import { hostLabelSchema } from "@/src/schemas/shared";
-import { NotFoundError } from "@/src/utils/errors";
-import { notFoundPage, publishedPage } from "@/src/utils/serve-page";
+import { NotFoundError } from "@/src/server/errors";
+import { notFoundPage, publishedPage } from "@/src/server/serve-page";
 
 type RouteContext = { params: Promise<{ username: string; path: string[] }> };
 

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { BanButton } from "@/src/app/admin/ban-button";
-import { auth } from "@/src/config/auth";
-import { getSession } from "@/src/utils/session";
+import { BanButton } from "@/src/components/admin/ban-button";
+import { auth } from "@/src/server/auth";
+import { getSession } from "@/src/server/session";
 
 // Role-gated: non-admins get a 404, not a 403, so the route's existence
 // isn't advertised.

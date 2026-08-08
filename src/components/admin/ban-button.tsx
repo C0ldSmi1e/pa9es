@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/src/clients/auth";
+import { authClient } from "@/src/lib/auth-client";
 
 // Banning takes the user's published pages off the air (the serving path
 // filters banned owners) and blocks sign-in; unban restores both.

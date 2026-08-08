@@ -8,7 +8,7 @@ import {
   NotFoundError,
   RateLimitError,
   UpstreamError,
-} from "@/src/utils/errors";
+} from "@/src/server/errors";
 
 /**
  * Creates a success response with the provided data
@@ -43,7 +43,7 @@ const createErrorResponse = <T>({
 };
 
 /**
- * Maps domain errors (src/utils/errors.ts) to HTTP responses. Each route's
+ * Maps domain errors (src/server/errors.ts) to HTTP responses. Each route's
  * catch block should defer to this; anything that isn't one of the named
  * domain errors falls through to a generic 500.
  */

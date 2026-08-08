@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSuccessResponse, errorToResponse } from "@/src/utils/create-response";
+import {
+  createSuccessResponse,
+  errorToResponse,
+} from "@/src/server/create-response";
 
 const GET = async (_request: NextRequest) => {
   try {

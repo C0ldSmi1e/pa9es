@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BadRequestError } from "@/src/utils/errors";
+import { BadRequestError } from "@/src/server/errors";
 
 // Parses request input (body or query params) with a zod schema; the first
 // validation issue becomes a BadRequestError → 400.

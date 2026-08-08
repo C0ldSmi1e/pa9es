@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { getProject } from "@/src/actions/projects";
-import { Editor } from "@/src/app/app/projects/[projectId]/editor";
-import { app, authConfig } from "@/src/config/settings";
-import { NotFoundError } from "@/src/utils/errors";
-import { getSession } from "@/src/utils/session";
+import { getProject } from "@/src/server/actions/projects";
+import { Editor } from "@/src/components/projects/editor";
+import { app, authConfig } from "@/src/server/env";
+import { NotFoundError } from "@/src/server/errors";
+import { getSession } from "@/src/server/session";
 
 type PageProps = { params: Promise<{ projectId: string }> };
 

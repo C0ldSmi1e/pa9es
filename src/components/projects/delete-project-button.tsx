@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/src/clients/api";
+import { api } from "@/src/lib/api";
 
 // Two-step inline confirm instead of window.confirm: no blocking browser
 // dialog, and the destructive action needs a second deliberate click.

@@ -1,7 +1,8 @@
+import "server-only";
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
-import { database } from "@/src/config/settings";
+import { database } from "@/src/server/env";
 
 const createDb = () => {
   if (!process.versions.bun) {

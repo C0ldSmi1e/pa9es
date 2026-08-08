@@ -18,10 +18,18 @@
 ## Use custom standard response format in API endpoints
 
 - All the API endpoints will return custom standard response (unless errors in network)
-- Use `@/src/utils/create-response` to construct return object
+- Use `@/src/server/create-response` to construct return object
 - Refer to `@/src/schemas/standard-response` to understand the response format
 - Refer to `@/src/app/api/route.ts` to see how an API endpoint work in this system
-- By default, `GET` methods return all the entities from database (with hard cap set in `@/src/config/settings.ts`). With pagination parameters, they will follow the paginated configuration.
+- By default, `GET` methods return all the entities from database (with hard cap set in `@/src/config/constants.ts`). With pagination parameters, they will follow the paginated configuration.
+
+## Code organization
+
+- `src/server/` — server-only zone. Key modules import `"server-only"`, so client bundles that touch them fail the build.
+- `src/components/` — UI components.
+- `src/lib/` — browser-safe helpers.
+- `src/schemas/` and `src/config/` — shared between both sides; must never read `process.env` or import from `src/server/`.
+- `src/app/` — routing shell only (pages, layouts, API routes).
 
 ## Use aboslute path instead of relative path in import
 

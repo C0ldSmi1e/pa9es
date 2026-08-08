@@ -1,7 +1,7 @@
 // Domain errors thrown by actions. Each names the *kind* of failure rather
 // than a transport-level status code — actions don't know about HTTP. The
 // route layer maps these to HTTP statuses via errorToResponse, which lives
-// alongside the other response helpers in src/utils/create-response.ts.
+// alongside the other response helpers in src/server/create-response.ts.
 //
 // Anything not listed here — DB outage, programming bug, library exception —
 // bubbles up as a generic 500.
@@ -104,7 +104,7 @@ const isUniqueViolation = (error: unknown): boolean =>
 // SQLite foreign-key violation. Lets a check-then-delete action map a
 // reference that appeared between the check and the delete to the same
 // ConflictError its pre-check would have thrown. Only fires because the
-// connection sets `PRAGMA foreign_keys = ON` — see src/clients/drizzle/index.ts.
+// connection sets `PRAGMA foreign_keys = ON` — see src/server/db/index.ts.
 const isForeignKeyViolation = (error: unknown): boolean =>
   hasSqliteCode(error, ["SQLITE_CONSTRAINT_FOREIGNKEY"]);
 

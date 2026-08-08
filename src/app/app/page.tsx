@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { listProjects } from "@/src/actions/projects";
-import { CreateProjectForm } from "@/src/app/app/create-project-form";
-import { DeleteProjectButton } from "@/src/app/app/delete-project-button";
-import { SignOutButton } from "@/src/app/app/sign-out-button";
-import { getSession } from "@/src/utils/session";
+import { listProjects } from "@/src/server/actions/projects";
+import { CreateProjectForm } from "@/src/components/projects/create-project-form";
+import { DeleteProjectButton } from "@/src/components/projects/delete-project-button";
+import { SignOutButton } from "@/src/components/auth/sign-out-button";
+import { getSession } from "@/src/server/session";
 
 const AppPage = async () => {
   const session = await getSession();

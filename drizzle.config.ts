@@ -10,7 +10,7 @@ mkdirSync(dirname(url), { recursive: true });
 
 export default defineConfig({
   dialect: "sqlite",
-  schema: "./src/clients/drizzle/schema.ts",
+  schema: "./src/server/db/schema.ts",
   out: "./drizzle",
   dbCredentials: { url },
 });

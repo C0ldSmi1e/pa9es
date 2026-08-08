@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { api } from "@/src/clients/api";
+import { api } from "@/src/lib/api";
 import type { ProjectDetail } from "@/src/schemas/project";
 
 const buttonClass = "rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50";

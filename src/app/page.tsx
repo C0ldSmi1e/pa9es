@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { app } from "@/src/config/settings";
-import { getSession } from "@/src/utils/session";
+import { app } from "@/src/server/env";
+import { getSession } from "@/src/server/session";
 
 const Home = async () => {
   const session = await getSession();

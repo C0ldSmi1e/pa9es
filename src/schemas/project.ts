@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { content } from "@/src/config/settings";
+import { content } from "@/src/config/constants";
 import { HOST_LABEL_REGEX } from "@/src/schemas/shared";
 
 const maxHtmlMb = content.maxHtmlBytes / 1024 / 1024;

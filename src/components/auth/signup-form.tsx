@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/src/clients/auth";
+import { authClient } from "@/src/lib/auth-client";
 import { usernameSchema } from "@/src/schemas/user";
 
 const inputClass =

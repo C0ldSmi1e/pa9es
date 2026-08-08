@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 
 const envSchema = z
@@ -40,21 +41,10 @@ export const database = {
 };
 
 // Named authConfig (not `auth`) to avoid clashing with the Better Auth
-// instance exported from src/config/auth.ts.
+// instance exported from src/server/auth.ts.
 export const authConfig = {
   secret: env.BETTER_AUTH_SECRET,
   url: env.BETTER_AUTH_URL,
-};
-
-export const pagination = {
-  defaultLimit: 10,
-  defaultOffset: 0,
-  maxLimit: 1000,
-};
-
-export const content = {
-  // Cap on one page's HTML, measured in UTF-8 bytes (what SQLite stores).
-  maxHtmlBytes: 5 * 1024 * 1024,
 };
 
 export const app = {

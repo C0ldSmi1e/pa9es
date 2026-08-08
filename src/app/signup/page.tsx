@@ -1,5 +1,5 @@
-import { app } from "@/src/config/settings";
-import { SignupForm } from "@/src/app/signup/signup-form";
+import { app } from "@/src/server/env";
+import { SignupForm } from "@/src/components/auth/signup-form";
 
 const SignupPage = () => {
   return <SignupForm rootDomain={app.rootDomain} />;

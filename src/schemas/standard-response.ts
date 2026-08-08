@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pagination } from "@/src/config/settings";
+import { pagination } from "@/src/config/constants";
 
 const PaginationSchema = z.object({
   offset: z.number(),
@@ -31,7 +31,7 @@ type ListResult<T> = { data: T[]; pagination: Pagination | null };
 
 // The upper bound is the same hard cap an unpaginated GET is clamped to, so a
 // caller can't page past what the route would return anyway. Single source of
-// truth: src/config/settings.ts.
+// truth: src/config/constants.ts.
 export const paginationQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
   limit: z.coerce.number().int().min(1).max(pagination.maxLimit).optional(),

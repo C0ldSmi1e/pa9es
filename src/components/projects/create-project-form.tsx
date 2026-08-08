@@ -2,10 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/src/clients/api";
-// hostLabelSchema (not schemas/project) on purpose: that module pulls in
-// server env validation and must stay out of client bundles.
-import { hostLabelSchema } from "@/src/schemas/shared";
+import { api } from "@/src/lib/api";
+import { slugSchema } from "@/src/schemas/project";
 import type { ProjectDetail } from "@/src/schemas/project";
 
 const inputClass =
@@ -21,7 +19,7 @@ const CreateProjectForm = () => {
   const normalized = slug.trim().toLowerCase();
   const slugIssue = useMemo(() => {
     if (normalized === "") return null;
-    const result = hostLabelSchema.safeParse(normalized);
+    const result = slugSchema.safeParse(normalized);
     return result.success ? null : result.error.issues[0].message;
   }, [normalized]);
 

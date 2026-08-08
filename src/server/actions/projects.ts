@@ -1,7 +1,7 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
-import { db } from "@/src/clients/drizzle";
-import { project, user, type Project } from "@/src/clients/drizzle/schema";
-import { pagination as paginationConfig } from "@/src/config/settings";
+import { db } from "@/src/server/db";
+import { project, user, type Project } from "@/src/server/db/schema";
+import { pagination as paginationConfig } from "@/src/config/constants";
 import type { ProjectDetail, ProjectSummary } from "@/src/schemas/project";
 import type { ListResult, Pagination } from "@/src/schemas/standard-response";
 import {
@@ -9,7 +9,7 @@ import {
   ConflictError,
   NotFoundError,
   isUniqueViolation,
-} from "@/src/utils/errors";
+} from "@/src/server/errors";
 
 // Every query below scopes by userId in the WHERE clause, so someone else's
 // project is indistinguishable from a missing one (404, never 403).
