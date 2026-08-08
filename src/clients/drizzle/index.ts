@@ -1,32 +1,42 @@
 import { mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname } from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { database } from "@/src/config/settings";
 
-const globalForDb = globalThis as unknown as {
-  sqlite?: Database.Database;
-};
+const createDb = () => {
+  if (!process.versions.bun) {
+    throw new Error(
+      "The database layer uses bun:sqlite and requires the Bun runtime. " +
+        "Run app code with `bun --bun …` (see package.json scripts).",
+    );
+  }
 
-const createConnection = (): Database.Database => {
   mkdirSync(dirname(database.file), { recursive: true });
 
-  const sqlite = new Database(database.file);
+  const requireRuntime = createRequire(import.meta.url);
+  const sqliteId = "bun:sqlite";
+  const driverId = "drizzle-orm/bun-sqlite";
+  const { Database } = requireRuntime(sqliteId);
+  const { drizzle } = requireRuntime(
+    driverId,
+  ) as typeof import("drizzle-orm/bun-sqlite");
 
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  sqlite.pragma("busy_timeout = 5000");
-  sqlite.pragma("synchronous = NORMAL");
-
-  return sqlite;
+  const client = new Database(database.file);
+  client.run("PRAGMA journal_mode = WAL");
+  client.run("PRAGMA foreign_keys = ON");
+  client.run("PRAGMA busy_timeout = 5000");
+  client.run("PRAGMA synchronous = NORMAL");
+  return drizzle({ client });
 };
 
-const sqlite = globalForDb.sqlite ?? createConnection();
+type Db = ReturnType<typeof createDb>;
+
+const globalForDb = globalThis as unknown as { db?: Db };
+
+const db = globalForDb.db ?? createDb();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForDb.sqlite = sqlite;
+  globalForDb.db = db;
 }
 
-const db = drizzle({ client: sqlite });
-
-export { db, sqlite };
+export { db };
