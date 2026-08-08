@@ -46,3 +46,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# self-hosted monaco assets (copied by scripts/copy-monaco.ts)
+/public/monaco
+/public/monaco-vim

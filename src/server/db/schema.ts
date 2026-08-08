@@ -134,7 +134,9 @@ const verification = sqliteTable(
 // ─── Domain tables ───────────────────────────────────────────────────────────
 
 // One project = one hosted HTML page, live at <username>.pa9es.com/<slug>
-// while published. The subdomain root ("/") never resolves to a project.
+// while a commit is live. The subdomain root ("/") never resolves to a
+// project. Version model: draftHtml is the autosaved worktree; commits are
+// immutable snapshots of it; liveCommitId points production at one commit.
 const project = sqliteTable(
   "project",
   {
@@ -149,17 +151,14 @@ const project = sqliteTable(
     slug: text("slug").notNull(),
     // Dashboard display name; creation defaults it to the slug.
     title: text("title").notNull(),
-    // The editor only ever writes draftHtml; visitors are only ever served
-    // publishedHtml. Publishing copies draft → published, so in-progress
-    // edits never leak to the live page. Also the seam where per-publish
-    // version snapshots and publish-consumes-credits slot in later.
+    // The autosaved worktree. Never served to visitors.
     draftHtml: text("draft_html").notNull().default(""),
+    // Live pointer. No FK: commits are append-only and cascade-deleted with
+    // the project, so it can never dangle; actions verify commit ownership.
+    liveCommitId: text("live_commit_id"),
+    // Denormalized copy of the live commit's html so the serving path reads
+    // one row. Rewritten on every make-live; survives unpublish.
     publishedHtml: text("published_html"),
-    // Kept separate from `publishedHtml IS NOT NULL` so unpublish →
-    // republish restores the exact previous snapshot without re-editing.
-    isPublished: integer("is_published", { mode: "boolean" })
-      .notNull()
-      .default(false),
     publishedAt: integer("published_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(nowMs)
@@ -178,12 +177,34 @@ const project = sqliteTable(
   ],
 );
 
+// Immutable snapshots of a project's draft. v is a per-project sequence
+// (v1, v2, …) assigned in createCommit's transaction.
+const commit = sqliteTable(
+  "commit",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    v: integer("v").notNull(),
+    message: text("message").notNull(),
+    html: text("html").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(nowMs)
+      .notNull(),
+  },
+  (table) => [uniqueIndex("commit_project_id_v_idx").on(table.projectId, table.v)],
+);
+
 // NOTE: the CLI also emits a `relations()` block, but drizzle-orm v1 replaced
 // that API with `defineRelations`. FKs above carry the real constraints; add
 // a defineRelations file if/when the db.query relational API is needed.
 
 type User = typeof user.$inferSelect;
 type Project = typeof project.$inferSelect;
+type Commit = typeof commit.$inferSelect;
 
-export { user, session, account, verification, project };
-export type { User, Project };
+export { user, session, account, verification, project, commit };
+export type { User, Project, Commit };

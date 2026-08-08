@@ -10,11 +10,15 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "postinstall": "bun scripts/copy-monaco.ts"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "better-auth": "^1.6.26",
     "drizzle-orm": "1.0.0-rc.4",
+    "monaco-editor": "^0.56.0",
+    "monaco-vim": "^0.4.4",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8",

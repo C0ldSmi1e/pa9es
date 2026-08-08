@@ -52,10 +52,7 @@ const AppPage = async () => {
                     {project.title}
                   </div>
                   <div className="truncate text-xs text-zinc-500">
-                    /{project.slug} · {project.isPublished ? "Live" : "Draft"}
-                    {project.isPublished && project.hasUnpublishedChanges
-                      ? " · unpublished changes"
-                      : ""}
+                    /{project.slug} · {project.isPublished ? "Live" : "Not live"}
                   </div>
                 </Link>
                 <DeleteProjectButton projectId={project.id} />

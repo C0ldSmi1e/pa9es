@@ -7,7 +7,13 @@ import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
 
 const eslintConfig = [
   {
-    ignores: ["src/components/ui/**", "src/lib/utils.ts", "src/generated/**"],
+    ignores: [
+      "src/components/ui/**",
+      "src/lib/utils.ts",
+      "src/generated/**",
+      "public/monaco/**",
+      "public/monaco-vim/**",
+    ],
   },
   ...nextConfig,
   eslintPluginPrettier,

@@ -41,10 +41,17 @@ In MVP, I need:
 - users can create or delete a project
 - in a project, users can edit the html file
 - a project should be unpublished by default, and can be publish and unpublished
+- version control of a project (git-like: commit ≠ publish)
+
+## Version model
+
+- The editor's draft is the autosaved worktree; it is never served to visitors.
+- A commit snapshots the draft (message required, versions v1, v2, …). Commits are immutable.
+- Production is a pointer to one commit ("Make live" / "Unpublish" in the timeline). Rollback = make an older commit live.
+- Restoring a commit overwrites the draft; the UI confirms first when uncommitted changes would be lost.
 
 In the future, I need:
 
-- version control of a project
 - AI audit
 - AI coding assistant
 - user profile and project info update

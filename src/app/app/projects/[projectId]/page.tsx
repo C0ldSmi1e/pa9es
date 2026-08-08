@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { getProject } from "@/src/server/actions/projects";
 import { Editor } from "@/src/components/projects/editor";
+import { listCommits } from "@/src/server/actions/commits";
+import { getProject } from "@/src/server/actions/projects";
 import { app, authConfig } from "@/src/server/env";
 import { NotFoundError } from "@/src/server/errors";
 import { getSession } from "@/src/server/session";
@@ -15,8 +16,10 @@ const ProjectPage = async ({ params }: PageProps) => {
 
   const { projectId } = await params;
   let project;
+  let commitList;
   try {
     project = await getProject({ userId: session.user.id, projectId });
+    commitList = await listCommits({ userId: session.user.id, projectId });
   } catch (error) {
     if (error instanceof NotFoundError) {
       notFound();
@@ -29,7 +32,13 @@ const ProjectPage = async ({ params }: PageProps) => {
   const protocol = new URL(authConfig.url).protocol;
   const liveUrl = `${protocol}//${session.user.username}.${app.rootDomain}/${project.slug}`;
 
-  return <Editor initial={project} liveUrl={liveUrl} />;
+  return (
+    <Editor
+      initial={project}
+      initialCommits={commitList.commits}
+      liveUrl={liveUrl}
+    />
+  );
 };
 
 export default ProjectPage;

@@ -1,9 +1,9 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
-import { db } from "@/src/server/db";
-import { project, user, type Project } from "@/src/server/db/schema";
+import { and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { pagination as paginationConfig } from "@/src/config/constants";
 import type { ProjectDetail, ProjectSummary } from "@/src/schemas/project";
 import type { ListResult, Pagination } from "@/src/schemas/standard-response";
+import { db } from "@/src/server/db";
+import { commit, project, user, type Project } from "@/src/server/db/schema";
 import {
   BadRequestError,
   ConflictError,
@@ -15,30 +15,51 @@ import {
 // project is indistinguishable from a missing one (404, never 403).
 
 const toSummary = (
-  row: Omit<Project, "draftHtml" | "publishedHtml"> & {
-    hasUnpublishedChanges: boolean;
-  },
+  row: Pick<
+    Project,
+    | "id"
+    | "slug"
+    | "title"
+    | "liveCommitId"
+    | "publishedAt"
+    | "createdAt"
+    | "updatedAt"
+  >,
 ): ProjectSummary => ({
   id: row.id,
   slug: row.slug,
   title: row.title,
-  isPublished: row.isPublished,
+  isPublished: row.liveCommitId !== null,
   publishedAt: row.publishedAt?.toISOString() ?? null,
-  hasUnpublishedChanges: row.hasUnpublishedChanges,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
 
-const toDetail = (row: Project): ProjectDetail => ({
-  ...toSummary({
-    ...row,
-    hasUnpublishedChanges: row.draftHtml !== (row.publishedHtml ?? ""),
-  }),
-  draftHtml: row.draftHtml,
-});
+// The latest commit's html decides `uncommitted`; a project with no commits
+// counts as uncommitted once the draft has content.
+const latestCommitHtml = async (projectId: string): Promise<string | null> => {
+  const [row] = await db
+    .select({ html: commit.html })
+    .from(commit)
+    .where(eq(commit.projectId, projectId))
+    .orderBy(desc(commit.v))
+    .limit(1);
+  return row?.html ?? null;
+};
 
-// Computed in SQL so list queries never load the HTML blobs.
-const hasUnpublishedChangesSql = sql<number>`${project.draftHtml} <> coalesce(${project.publishedHtml}, '')`;
+const toDetail = async (row: Project): Promise<ProjectDetail> => {
+  const latest = await latestCommitHtml(row.id);
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    draftHtml: row.draftHtml,
+    liveCommitId: row.liveCommitId,
+    uncommitted: latest === null ? row.draftHtml !== "" : row.draftHtml !== latest,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+};
 
 const listProjects = async ({
   userId,
@@ -59,14 +80,12 @@ const listProjects = async ({
   const rows = await db
     .select({
       id: project.id,
-      userId: project.userId,
       slug: project.slug,
       title: project.title,
-      isPublished: project.isPublished,
+      liveCommitId: project.liveCommitId,
       publishedAt: project.publishedAt,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
-      hasUnpublishedChanges: hasUnpublishedChangesSql,
     })
     .from(project)
     .where(eq(project.userId, userId))
@@ -74,9 +93,7 @@ const listProjects = async ({
     .limit(effectiveLimit)
     .offset(effectiveOffset);
 
-  const data = rows.map((row) =>
-    toSummary({ ...row, hasUnpublishedChanges: Boolean(row.hasUnpublishedChanges) }),
-  );
+  const data = rows.map(toSummary);
 
   let pagination: Pagination | null = null;
   if (paginated) {
@@ -95,13 +112,13 @@ const listProjects = async ({
   return { data, pagination };
 };
 
-const getProject = async ({
+const findOwnedProject = async ({
   userId,
   projectId,
 }: {
   userId: string;
   projectId: string;
-}): Promise<ProjectDetail> => {
+}): Promise<Project> => {
   const [row] = await db
     .select()
     .from(project)
@@ -110,7 +127,14 @@ const getProject = async ({
   if (!row) {
     throw new NotFoundError("Project not found");
   }
-  return toDetail(row);
+  return row;
+};
+
+const getProject = async (args: {
+  userId: string;
+  projectId: string;
+}): Promise<ProjectDetail> => {
+  return toDetail(await findOwnedProject(args));
 };
 
 const createProject = async ({
@@ -182,51 +206,9 @@ const deleteProject = async ({
   return row;
 };
 
-// Snapshot the draft in a single UPDATE so a concurrent draft save can't
-// interleave between read and write.
-const publishProject = async ({
-  userId,
-  projectId,
-}: {
-  userId: string;
-  projectId: string;
-}): Promise<ProjectDetail> => {
-  const [row] = await db
-    .update(project)
-    .set({
-      publishedHtml: sql`${project.draftHtml}`,
-      isPublished: true,
-      publishedAt: new Date(),
-    })
-    .where(and(eq(project.id, projectId), eq(project.userId, userId)))
-    .returning();
-  if (!row) {
-    throw new NotFoundError("Project not found");
-  }
-  return toDetail(row);
-};
-
-// Only flips the flag — the published snapshot survives for re-publishing.
-const unpublishProject = async ({
-  userId,
-  projectId,
-}: {
-  userId: string;
-  projectId: string;
-}): Promise<ProjectDetail> => {
-  const [row] = await db
-    .update(project)
-    .set({ isPublished: false })
-    .where(and(eq(project.id, projectId), eq(project.userId, userId)))
-    .returning();
-  if (!row) {
-    throw new NotFoundError("Project not found");
-  }
-  return toDetail(row);
-};
-
-// Public serving path: resolves <username>.pa9es.com/<slug> to HTML. Banned
-// users' pages are off the air.
+// Public serving path: resolves <username>.pa9es.com/<slug> to the live
+// commit's html (denormalized into publishedHtml). Banned users' pages stay
+// off the air.
 const getPublishedPage = async ({
   username,
   slug,
@@ -242,7 +224,7 @@ const getPublishedPage = async ({
       and(
         eq(user.username, username),
         eq(project.slug, slug),
-        eq(project.isPublished, true),
+        isNotNull(project.liveCommitId),
         sql`${user.banned} is not true`,
       ),
     )
@@ -259,7 +241,8 @@ export {
   createProject,
   updateProject,
   deleteProject,
-  publishProject,
-  unpublishProject,
   getPublishedPage,
+  findOwnedProject,
+  latestCommitHtml,
+  toDetail,
 };
