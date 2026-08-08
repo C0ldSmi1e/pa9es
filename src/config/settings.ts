@@ -6,6 +6,9 @@ const envSchema = z.object({
     .string()
     .min(32, "at least 32 chars; generate with `openssl rand -base64 32`"),
   BETTER_AUTH_URL: z.url(),
+  // Host (with port in dev) that user subdomains hang off of:
+  // <username>.ROOT_DOMAIN. "pa9es.com" in production.
+  ROOT_DOMAIN: z.string().min(1).default("localhost:3000"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -39,4 +42,8 @@ export const pagination = {
 export const content = {
   // Cap on one page's HTML, measured in UTF-8 bytes (what SQLite stores).
   maxHtmlBytes: 1024 * 1024,
+};
+
+export const app = {
+  rootDomain: env.ROOT_DOMAIN,
 };

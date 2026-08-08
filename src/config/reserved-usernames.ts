@@ -45,6 +45,7 @@ const RESERVED_USERNAMES = new Set<string>([
   "search",
   "settings",
   "site",
+  "sites",
   "smtp",
   "staff",
   "staging",
