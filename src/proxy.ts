@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { app } from "@/src/config/settings";
+import { app, authConfig } from "@/src/config/settings";
+
+// Canonical app origin = BETTER_AUTH_URL. Session cookies and Better Auth's
+// Origin checks are bound to it, so app traffic on any other app-shaped host
+// (e.g. the apex when canonical is www) is redirected instead of served as a
+// broken second origin.
+const canonicalUrl = new URL(authConfig.url);
 
 // Host-based routing, and nothing else — no database access here (the proxy
 // is a network boundary; see Next docs). App hosts (ROOT_DOMAIN and its www)
@@ -23,6 +29,12 @@ export function proxy(request: NextRequest) {
     host.endsWith(`.${rootDomain}`);
 
   if (!isSubdomain) {
+    if (host !== canonicalUrl.host.toLowerCase()) {
+      const url = request.nextUrl.clone();
+      url.protocol = canonicalUrl.protocol;
+      url.host = canonicalUrl.host;
+      return NextResponse.redirect(url, 307);
+    }
     // The internal serving prefix is reachable only via the rewrite below.
     if (pathname === "/sites" || pathname.startsWith("/sites/")) {
       return NextResponse.rewrite(new URL("/__no-such-page", request.url));
