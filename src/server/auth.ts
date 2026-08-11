@@ -1,5 +1,3 @@
-// When running `bunx --bun @better-auth/cli generate`, temporarily comment out
-// the server-only imports here, in server/env.ts, and in server/db/index.ts.
 import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

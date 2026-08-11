@@ -22,7 +22,9 @@ const SignupForm = ({ rootDomain }: { rootDomain: string }) => {
   // Same rules the server enforces (charset, length, reserved list), so
   // feedback is instant; the server remains the authority on submit.
   const usernameIssue = useMemo(() => {
-    if (username === "") return null;
+    if (username === "") {
+      return null;
+    }
     const result = usernameSchema.safeParse(username);
     return result.success ? null : result.error.issues[0].message;
   }, [username]);
