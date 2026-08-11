@@ -6,10 +6,16 @@ import { DeleteProjectButton } from "@/src/components/projects/delete-project-bu
 import { SignOutButton } from "@/src/components/auth/sign-out-button";
 import { getSession } from "@/src/server/session";
 
-const AppPage = async () => {
+type PageProps = { searchParams: Promise<{ error?: string }> };
+
+const AppPage = async ({ searchParams }: PageProps) => {
   const session = await getSession();
   if (!session) {
-    redirect("/login");
+    // Verification links use /app as their callbackURL, so a failed link
+    // (expired/invalid token) lands here signed-out with an error code —
+    // carry it to the login page's notice instead of dropping it.
+    const { error } = await searchParams;
+    redirect(error ? `/login?error=${encodeURIComponent(error)}` : "/login");
   }
 
   const { data: projects } = await listProjects({ userId: session.user.id });

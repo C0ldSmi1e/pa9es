@@ -11,6 +11,15 @@ const envSchema = z
     // Host (with port in dev) that user subdomains hang off of:
     // <username>.ROOT_DOMAIN. "pa9es.com" in production.
     ROOT_DOMAIN: z.string().min(1).default("localhost:3000"),
+    // Transactional email (Resend). Optional so dev works without an account
+    RESEND_API_KEY: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().optional(),
+    ),
+    EMAIL_FROM: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().default("pa9es <no-reply@pa9es.com>"),
+    ),
   })
   .superRefine((value, ctx) => {
     // The canonical app origin must live on the root domain (apex or www),
@@ -49,4 +58,9 @@ export const authConfig = {
 
 export const app = {
   rootDomain: env.ROOT_DOMAIN,
+};
+
+export const emailConfig = {
+  apiKey: env.RESEND_API_KEY,
+  from: env.EMAIL_FROM,
 };

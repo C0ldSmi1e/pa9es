@@ -34,6 +34,7 @@ Everything on one domain for now.
 In MVP, I need:
 
 - [Better Auth](https://better-auth.com/) for auth, email and password
+- email verification before sign-in (Resend)
 - admin dashboard
   - user management
 - user dashboard
@@ -49,6 +50,12 @@ In MVP, I need:
 - A commit snapshots the draft (message required, versions v1, v2, …). Commits are immutable.
 - Production is a pointer to one commit ("Make live" / "Unpublish" in the timeline). Rollback = make an older commit live.
 - Restoring a commit overwrites the draft; the UI confirms first when uncommitted changes would be lost.
+
+## Email
+
+- Resend for transactional email (`RESEND_API_KEY`, `EMAIL_FROM`). Without a key, dev logs emails (their links) to the server console instead of sending; production refuses to run the send.
+- All templates live in `src/server/emails/templates.ts` — pure `{ subject, html }` functions; delivery lives in `src/server/emails/send.ts`.
+- Signup requires verification: no sign-in until the emailed link (1h expiry) is clicked. Clicking verifies, signs in, and lands on `/app`. An unverified sign-in attempt re-sends the link; expired/invalid links redirect to `/login` with a notice.
 
 In the future, I need:
 

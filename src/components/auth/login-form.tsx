@@ -9,7 +9,9 @@ const inputClass =
   "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none " +
   "focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-400";
 
-const LoginForm = () => {
+// notice: informational banner from the server (e.g. an expired verification
+// link redirected here), as opposed to `error`, which reports a failed submit.
+const LoginForm = ({ notice = null }: { notice?: string | null }) => {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +31,13 @@ const LoginForm = () => {
           password,
         });
     if (signInError) {
-      setError(signInError.message ?? "Sign in failed");
+      // The server re-sends the verification email on this failure
+      // (sendOnSignIn), so the copy can promise a fresh link.
+      setError(
+        signInError.code === "EMAIL_NOT_VERIFIED"
+          ? "Your email isn't verified yet — we just sent you a new verification link."
+          : (signInError.message ?? "Sign in failed"),
+      );
       setSubmitting(false);
       return;
     }
@@ -46,6 +54,12 @@ const LoginForm = () => {
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Welcome back
         </h1>
+
+        {notice && (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            {notice}
+          </p>
+        )}
 
         <label className="block space-y-1">
           <span className="text-sm text-zinc-700 dark:text-zinc-300">
