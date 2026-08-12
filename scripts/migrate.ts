@@ -17,8 +17,8 @@ const file = process.env.DB_FILE_NAME ?? "./data/pa9es.db";
 mkdirSync(dirname(file), { recursive: true });
 
 const client = new Database(file);
-client.run("PRAGMA journal_mode = WAL");
 client.run("PRAGMA busy_timeout = 5000");
+client.run("PRAGMA journal_mode = WAL");
 const db = drizzle({ client });
 
 migrate(db, { migrationsFolder: "./drizzle" });

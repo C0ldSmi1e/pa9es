@@ -23,9 +23,11 @@ const createDb = () => {
   ) as typeof import("drizzle-orm/bun-sqlite");
 
   const client = new Database(database.file);
+  // busy_timeout first: `next build` imports this from parallel workers, and
+  // the WAL switch below needs the retry window or it races to SQLITE_BUSY.
+  client.run("PRAGMA busy_timeout = 5000");
   client.run("PRAGMA journal_mode = WAL");
   client.run("PRAGMA foreign_keys = ON");
-  client.run("PRAGMA busy_timeout = 5000");
   client.run("PRAGMA synchronous = NORMAL");
   return drizzle({ client });
 };
