@@ -57,6 +57,7 @@ In MVP, I need:
 - Resend for transactional email (`RESEND_API_KEY`, `EMAIL_FROM`). Without a key, dev logs emails (their links) to the server console instead of sending; production refuses to run the send.
 - All templates live in `src/server/emails/templates.ts` — pure `{ subject, html }` functions; delivery lives in `src/server/emails/send.ts`.
 - Signup requires verification: no sign-in until the emailed link (1h expiry) is clicked. Clicking verifies, signs in, and lands on `/app`. An unverified sign-in attempt re-sends the link; expired/invalid links redirect to `/login` with a notice.
+- Forgot password: `/forgot-password` emails a single-use reset link (1h expiry) that lands on `/reset-password`. The response never reveals whether the email is registered. A completed reset revokes every session (unlike change-password, which keeps the calling browser signed in).
 
 In the future, I need:
 

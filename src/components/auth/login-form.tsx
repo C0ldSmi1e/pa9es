@@ -77,7 +77,17 @@ const LoginForm = ({ notice = null }: { notice?: string | null }) => {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">Password</span>
+          <span className="flex items-baseline justify-between">
+            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+              Password
+            </span>
+            <Link
+              href="/forgot-password"
+              className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              Forgot password?
+            </Link>
+          </span>
           <input
             className={inputClass}
             type="password"

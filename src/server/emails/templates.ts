@@ -48,5 +48,33 @@ const verificationEmail = ({
     </p>`),
 });
 
-export { verificationEmail };
+const resetPasswordEmail = ({
+  name,
+  url,
+}: {
+  name: string;
+  url: string;
+}): EmailTemplate => ({
+  subject: "Reset your pa9es password",
+  html: layout(`    <p style="margin:0 0 16px;font-size:14px;">Hi ${escapeHtml(name)},</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#3f3f46;">
+      Someone requested a password reset for your pa9es account. Click the
+      button to choose a new password.
+    </p>
+    <a href="${escapeHtml(url)}"
+       style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:10px 20px;border-radius:8px;">
+      Reset password
+    </a>
+    <p style="margin:24px 0 0;font-size:12px;color:#71717a;">
+      This link expires in one hour and can be used once. If the button
+      doesn't work, paste this URL into your browser:<br>
+      <span style="word-break:break-all;color:#3f3f46;">${escapeHtml(url)}</span>
+    </p>
+    <p style="margin:16px 0 0;font-size:12px;color:#71717a;">
+      If you didn't request this, you can ignore this email — your password is
+      unchanged.
+    </p>`),
+});
+
+export { verificationEmail, resetPasswordEmail };
 export type { EmailTemplate };

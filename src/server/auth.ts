@@ -5,7 +5,10 @@ import { admin, username } from "better-auth/plugins";
 import { db } from "@/src/server/db";
 import * as schema from "@/src/server/db/schema";
 import { sendEmail } from "@/src/server/emails/send";
-import { verificationEmail } from "@/src/server/emails/templates";
+import {
+  resetPasswordEmail,
+  verificationEmail,
+} from "@/src/server/emails/templates";
 import { authConfig } from "@/src/server/env";
 import { usernameSchema } from "@/src/schemas/user";
 
@@ -18,10 +21,14 @@ const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    // Unverified accounts can't sign in. Both sign-in paths honor this —
-    // better-auth enforces it in /sign-in/email and the username plugin
-    // repeats the check in /sign-in/username.
+    // Unverified accounts can't sign in.
     requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      const { subject, html } = resetPasswordEmail({ name: user.name, url });
+      await sendEmail({ to: user.email, subject, html });
+    },
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
   },
   emailVerification: {
     sendOnSignUp: true,

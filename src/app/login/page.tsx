@@ -1,6 +1,6 @@
 import { LoginForm } from "@/src/components/auth/login-form";
 
-type PageProps = { searchParams: Promise<{ error?: string }> };
+type PageProps = { searchParams: Promise<{ error?: string; reset?: string }> };
 
 // Failed email-verification links land here (redirected via /app) with
 // better-auth's error code in the query. Only known codes get a notice;
@@ -13,8 +13,14 @@ const NOTICES: Record<string, string> = {
 };
 
 const LoginPage = async ({ searchParams }: PageProps) => {
-  const { error } = await searchParams;
-  return <LoginForm notice={error ? (NOTICES[error] ?? null) : null} />;
+  const { error, reset } = await searchParams;
+  const notice =
+    reset === "success"
+      ? "Password updated."
+      : error
+        ? (NOTICES[error] ?? null)
+        : null;
+  return <LoginForm notice={notice} />;
 };
 
 export default LoginPage;
