@@ -235,6 +235,29 @@ const getPublishedPage = async ({
   return { html: row.html ?? "" };
 };
 
+// Public index for <username>.pa9es.com/ — every published page the user
+// has, newest publish first. Same visibility rules as getPublishedPage:
+// only live pages, banned owners excluded. Empty result ≙ nothing to show;
+// the route renders the same 404 as an unknown username.
+const listPublishedPages = async ({
+  username,
+}: {
+  username: string;
+}): Promise<Array<{ slug: string; title: string }>> => {
+  return db
+    .select({ slug: project.slug, title: project.title })
+    .from(project)
+    .innerJoin(user, eq(project.userId, user.id))
+    .where(
+      and(
+        eq(user.username, username),
+        isNotNull(project.liveCommitId),
+        sql`${user.banned} is not true`,
+      ),
+    )
+    .orderBy(desc(project.publishedAt));
+};
+
 export {
   listProjects,
   getProject,
@@ -242,6 +265,7 @@ export {
   updateProject,
   deleteProject,
   getPublishedPage,
+  listPublishedPages,
   findOwnedProject,
   latestCommitHtml,
   toDetail,

@@ -135,8 +135,9 @@ const verification = sqliteTable(
 
 // One project = one hosted HTML page, live at <username>.pa9es.com/<slug>
 // while a commit is live. The subdomain root ("/") never resolves to a
-// project. Version model: draftHtml is the autosaved worktree; commits are
-// immutable snapshots of it; liveCommitId points production at one commit.
+// project — it serves an index of the user's published pages. Version model:
+// draftHtml is the autosaved worktree; commits are immutable snapshots of it;
+// liveCommitId points production at one commit.
 const project = sqliteTable(
   "project",
   {
