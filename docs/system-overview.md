@@ -22,12 +22,14 @@ Everything on one domain for now.
 | `www.pa9es.com/app` | User dashboard + editor |
 | `www.pa9es.com/admin` | Admin (me) |
 | `alice.pa9es.com/blog` | A user's page |
+| `alice.pa9es.com` | Index of alice's published pages |
 
 **Rules that fall out of this:**
 
 - Usernames are hostnames: lowercase letters, numbers, hyphens, max 63 chars. Check at signup.
 - Can't do `page.user.pa9es.com` — wildcards only match one label. Path it is.
 - Reserve before launch: `www`, `app`, `api`, `admin`, `mail`, `cdn`, `static`, `status`, `docs`, `help`, `blog`, plus brand names like `paypal`, `metamask`, `coinbase`. Also block lookalikes — `paypa1`, `rnetamask`, Cyrillic characters.
+- The subdomain root lists the user's published pages (always on). Unknown usernames and users with zero published pages get the identical 404. Unpublished drafts never appear.
 
 ## Key Features
 
