@@ -8,26 +8,29 @@ const ResetPasswordPage = async ({ searchParams }: PageProps) => {
 
   if (!token || error) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-50 p-6 font-sans dark:bg-black">
-        <div className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-ground p-6 font-sans">
+        <Link href="/" className="mb-6 font-mono text-base text-ink">
+          pa<b className="font-semibold text-accent">9</b>es
+        </Link>
+        <div className="w-full max-w-sm space-y-5 rounded-xl border border-edge bg-panel p-6">
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-xl font-semibold tracking-tight text-ink">
               Link invalid or expired
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-dim">
               Reset links can only be used once and expire after one hour.
             </p>
           </div>
           <Link
             href="/forgot-password"
-            className="block w-full rounded-md bg-zinc-900 px-3 py-2 text-center text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="block w-full rounded-lg bg-ink px-3 py-2 text-center text-sm font-medium text-panel transition hover:opacity-85"
           >
             Request a new link
           </Link>
-          <p className="text-center text-sm text-zinc-500">
+          <p className="text-center text-sm text-dim">
             <Link
               href="/login"
-              className="text-zinc-900 underline dark:text-zinc-50"
+              className="text-ink underline decoration-faint underline-offset-2 hover:decoration-ink"
             >
               Back to login
             </Link>

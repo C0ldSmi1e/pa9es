@@ -8,10 +8,10 @@ const NOT_FOUND_HTML = `<!doctype html>
 <title>Nothing here · pa9es</title>
 <style>
   body { margin: 0; display: grid; place-items: center; min-height: 100vh;
-         font-family: ui-sans-serif, system-ui, sans-serif; background: #fafafa; color: #18181b; }
+         font-family: ui-sans-serif, system-ui, sans-serif; background: #f2f2ef; color: #1a1a1c; }
   main { text-align: center; padding: 2rem; }
   h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 .5rem; }
-  p { margin: 0; color: #71717a; font-size: .875rem; }
+  p { margin: 0; color: #6d6d72; font-size: .875rem; }
 </style>
 </head>
 <body>

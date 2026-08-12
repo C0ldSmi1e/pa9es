@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { configureMonacoLoader, loadVimMode, type VimMode } from "@/src/lib/monaco";
 
@@ -28,16 +28,6 @@ const CodeEditor = ({
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
-
-  const dark = useSyncExternalStore(
-    (onStoreChange) => {
-      const media = matchMedia("(prefers-color-scheme: dark)");
-      media.addEventListener("change", onStoreChange);
-      return () => media.removeEventListener("change", onStoreChange);
-    },
-    () => matchMedia("(prefers-color-scheme: dark)").matches,
-    () => false,
-  );
 
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -73,7 +63,7 @@ const CodeEditor = ({
         <Editor
           value={value}
           language="html"
-          theme={dark ? "vs-dark" : "light"}
+          theme="light"
           onChange={(next) => onChange(next ?? "")}
           onMount={handleMount}
           options={{
@@ -88,7 +78,7 @@ const CodeEditor = ({
       </div>
       <div
         ref={vimBarRef}
-        className={`border-t border-zinc-200 px-3 py-0.5 font-mono text-xs text-zinc-500 dark:border-zinc-800 ${vim ? "" : "hidden"}`}
+        className={`border-t border-edge bg-panel px-3 py-0.5 font-mono text-xs text-dim ${vim ? "" : "hidden"}`}
       />
     </div>
   );

@@ -12,35 +12,46 @@ const SettingsPage = async () => {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <div className="mx-auto max-w-2xl space-y-6 p-6">
-        <header className="flex items-center justify-between">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Settings
-            </h1>
-            <span className="text-sm text-zinc-500">
-              {session.user.username ?? session.user.email}
-            </span>
-          </div>
+    <main className="min-h-screen bg-ground font-sans">
+      <div className="mx-auto max-w-lg space-y-5 px-6 py-8">
+        <header className="flex items-baseline justify-between border-b border-edge pb-4">
+          <h1 className="text-lg font-semibold tracking-tight text-ink">Settings</h1>
           <Link
             href="/app"
-            className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            className="text-sm text-dim transition-colors hover:text-ink"
           >
-            ← Dashboard
+            ← Pages
           </Link>
         </header>
 
-        <section className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <div>
-            <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-              Change password
-            </h2>
-            <p className="mt-0.5 text-xs text-zinc-500">
-              Changing your password signs you out everywhere except this browser.
-            </p>
+        <section className="rounded-xl border border-edge bg-panel p-5">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-dim">
+            Account
+          </h2>
+          <dl className="mt-3 space-y-1.5">
+            <div className="flex items-baseline justify-between text-sm">
+              <dt className="text-dim">username</dt>
+              <dd className="font-mono text-xs text-ink">
+                {session.user.username ?? "—"}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between text-sm">
+              <dt className="text-dim">email</dt>
+              <dd className="font-mono text-xs text-ink">{session.user.email}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="rounded-xl border border-edge bg-panel p-5">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-dim">
+            Change password
+          </h2>
+          <div className="mt-4">
+            <ChangePasswordForm />
           </div>
-          <ChangePasswordForm />
+          <p className="mt-4 text-xs text-faint">
+            Changing your password signs you out everywhere except this browser.
+          </p>
         </section>
       </div>
     </main>

@@ -26,7 +26,7 @@ const DeleteProjectButton = ({ projectId }: { projectId: string }) => {
     return (
       <button
         onClick={() => setArming(true)}
-        className="shrink-0 rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-500 hover:border-red-400 hover:text-red-600 dark:border-zinc-700 dark:hover:border-red-500 dark:hover:text-red-400"
+        className="shrink-0 rounded-md border border-edge px-3 py-1.5 text-xs text-dim transition-colors hover:border-danger hover:text-danger"
       >
         Delete
       </button>
@@ -38,14 +38,14 @@ const DeleteProjectButton = ({ projectId }: { projectId: string }) => {
       <button
         onClick={onDelete}
         disabled={deleting}
-        className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-50"
+        className="rounded-md bg-danger px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
       >
         {deleting ? "Deleting…" : "Confirm"}
       </button>
       <button
         onClick={() => setArming(false)}
         disabled={deleting}
-        className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-500 dark:border-zinc-700"
+        className="rounded-md border border-edge px-3 py-1.5 text-xs text-dim"
       >
         Cancel
       </button>
