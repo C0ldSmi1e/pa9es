@@ -28,9 +28,10 @@ ENV NODE_ENV=production \
     BETTER_AUTH_SECRET="insecure-build-time-placeholder-32-chars-min" \
     BETTER_AUTH_URL="http://localhost:3000"
 RUN bun run build
-# Pre-create the data mountpoint owned by bun so the named volume inherits
-# writable ownership no matter which service touches it first.
-RUN mkdir -p data && chown bun:bun data
+# The build itself creates a throwaway data/pa9es.db (importing the server
+# modules opens the DB) — remove it or first-mount copy-up seeds the volume
+# with a root-owned file. Recreate the mountpoint empty and bun-owned.
+RUN rm -rf data && mkdir -p data && chown bun:bun data
 
 # ── runner: minimal production image ──
 FROM oven/bun:1-alpine AS runner

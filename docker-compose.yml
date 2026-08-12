@@ -8,7 +8,7 @@ services:
       target: builder
     image: pa9es-builder
     user: "0:0"
-    command: ["chown", "bun:bun", "/app/data"]
+    command: ["chown", "-R", "bun:bun", "/app/data"]
     volumes:
       - pa9es-data:/app/data
     restart: "no"
