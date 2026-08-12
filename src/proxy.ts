@@ -33,6 +33,9 @@ export function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.protocol = canonicalUrl.protocol;
       url.host = canonicalUrl.host;
+      // Setting host alone keeps any existing port (URL API quirk) — behind
+      // the tunnel that leaks the container's :3000 into public redirects.
+      url.port = canonicalUrl.port;
       return NextResponse.redirect(url, 307);
     }
     // The internal serving prefix is reachable only via the rewrite below.
