@@ -1,0 +1,29 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # adds a manual "Run workflow" button
+
+# A second push while a deploy is running waits for it instead of racing it.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: moon
+          key: ${{ secrets.SSH_KEY }}
+          # Sync the checkout first so the deploy script that runs is the one
+          # from this commit, then hand off to it (scripts/deploy.sh re-syncs,
+          # which is an idempotent no-op here).
+          script: |
+            set -euo pipefail
+            cd /home/moon/pa9es
+            git fetch origin main
+            git reset --hard origin/main
+            bash scripts/deploy.sh
