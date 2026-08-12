@@ -1,35 +1,6 @@
 name: pa9es
 
 services:
-  volume-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
-    image: pa9es-builder
-    user: "0:0"
-    command: ["chown", "-R", "bun:bun", "/app/data"]
-    volumes:
-      - pa9es-data:/app/data
-    restart: "no"
-
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
-    image: pa9es-builder
-    user: bun
-    command: ["bun", "scripts/migrate.ts"]
-    depends_on:
-      volume-init:
-        condition: service_completed_successfully
-    env_file:
-      - .env
-    volumes:
-      - pa9es-data:/app/data
-    restart: "no"
-
   app:
     build:
       context: .
@@ -37,9 +8,6 @@ services:
     image: pa9es
     container_name: pa9es
     restart: unless-stopped
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     ports:
       - "${HOST_PORT:-3000}:3000"
     env_file:

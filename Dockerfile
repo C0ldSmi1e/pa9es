@@ -9,8 +9,6 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 
 # ── builder: produce the standalone server (.next/standalone) ──
-# The compose `migrate` service also runs this stage (it has scripts/migrate.ts
-# and the drizzle/ migrations), as user bun against the shared data volume.
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -28,14 +26,13 @@ ENV NODE_ENV=production \
     BETTER_AUTH_SECRET="insecure-build-time-placeholder-32-chars-min" \
     BETTER_AUTH_URL="http://localhost:3000"
 RUN bun run build
-# The build itself creates a throwaway data/pa9es.db (importing the server
-# modules opens the DB) — remove it or first-mount copy-up seeds the volume
-# with a root-owned file. Recreate the mountpoint empty and bun-owned.
-RUN rm -rf data && mkdir -p data && chown bun:bun data
 
 # ── runner: minimal production image ──
 FROM oven/bun:1-alpine AS runner
 WORKDIR /app
+# su-exec: docker-entrypoint.sh starts as root to chown the data volume, then
+# drops to bun for migrations and the server.
+RUN apk add --no-cache su-exec
 # HOSTNAME=0.0.0.0 is required so the server is reachable through the published
 # port. The container always listens on PORT=3000; the host-facing port is set
 # via HOST_PORT in docker-compose (nothing overrides PORT here).
@@ -52,9 +49,12 @@ COPY --from=builder --chown=bun:bun /app/public ./public
 # tracing can't see that either, so overlay the full package into the pruned
 # node_modules. drizzle-orm has no runtime deps of its own.
 COPY --from=deps --chown=bun:bun /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-# SQLite lives on the data volume mounted here; bun-owned so the app can write.
-RUN mkdir -p data && chown bun:bun data
-USER bun
+# The entrypoint applies these migrations against the data volume on every
+# start, before the server begins listening.
+COPY --chown=bun:bun drizzle ./drizzle
+COPY --chown=bun:bun scripts/migrate.ts ./scripts/migrate.ts
+COPY docker-entrypoint.sh ./
+RUN mkdir -p data
 # Informational only — the real published port is set by compose from .env.
 EXPOSE 3000
-CMD ["bun", "server.js"]
+ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]

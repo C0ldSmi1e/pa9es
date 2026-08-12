@@ -14,19 +14,21 @@ cd "$APP_DIR"
 git fetch origin main
 git reset --hard origin/main
 
-# Build first so the running app stays up through the slow part; `up` then
-# re-runs the one-shot migrate service (idempotent) before swapping the app.
+# Build first so the running app stays up through the slow part; the
+# container applies migrations at startup, before the server listens.
 docker compose build --pull
-docker compose up -d
+docker compose up -d --remove-orphans
 
 # Each deploy strands the previous images; drop the dangling ones.
 docker image prune -f
 
-# Smoke check on the published port. Any status < 400 passes — a plain
-# 127.0.0.1 request gets the 307 canonical-host redirect, which curl -f
-# accepts.
+# Smoke check on the published port. --retry-all-errors matters: while the
+# app boots, docker's port proxy RESETS connections rather than refusing
+# them, and plain --retry treats a reset as fatal. Any status < 400 passes —
+# a plain 127.0.0.1 request gets the 307 canonical-host redirect, which
+# curl -f accepts.
 HOST_PORT="$(grep -E '^HOST_PORT=' .env | cut -d= -f2- || true)"
-curl -fsS --retry 10 --retry-connrefused --retry-delay 2 -o /dev/null \
+curl -fsS --retry 15 --retry-all-errors --retry-delay 2 -o /dev/null \
   "http://127.0.0.1:${HOST_PORT:-3000}/"
 
 echo "deploy OK: $(git rev-parse --short HEAD)"
