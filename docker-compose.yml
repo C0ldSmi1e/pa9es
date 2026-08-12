@@ -8,12 +8,16 @@ services:
     image: pa9es
     container_name: pa9es
     restart: unless-stopped
-    ports:
-      - "${HOST_PORT:-3000}:3000"
     env_file:
       - .env
     volumes:
       - pa9es-data:/app/data
+    networks:
+      - tunnel-net
 
 volumes:
   pa9es-data:
+
+networks:
+  tunnel-net:
+    external: true
