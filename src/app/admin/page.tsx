@@ -27,54 +27,52 @@ const AdminPage = async () => {
   >;
 
   return (
-    <main className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <div className="mx-auto max-w-3xl space-y-6 p-6">
-        <header className="flex items-center justify-between">
+    <main className="min-h-screen bg-ground font-sans">
+      <div className="mx-auto max-w-3xl space-y-5 px-6 py-8">
+        <header className="flex items-baseline justify-between border-b border-edge pb-4">
           <div className="flex items-baseline gap-3">
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Admin
-            </h1>
-            <span className="text-sm text-zinc-500">
+            <h1 className="text-lg font-semibold tracking-tight text-ink">Admin</h1>
+            <span className="font-mono text-xs text-dim">
               {total} user{total === 1 ? "" : "s"}
             </span>
           </div>
           <Link
             href="/app"
-            className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            className="text-sm text-dim transition-colors hover:text-ink"
           >
-            ← Dashboard
+            ← Pages
           </Link>
         </header>
 
-        <section className="space-y-2">
+        <section className="divide-y divide-edge border-y border-edge">
           {users.map((user) => (
             <div
               key={user.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+              className="flex items-center justify-between gap-3 px-2.5 py-3.5"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                  <span className="truncate text-sm font-medium text-ink">
                     {user.username ?? user.name}
                   </span>
                   {user.role === "admin" && (
-                    <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] font-medium uppercase text-white dark:bg-zinc-50 dark:text-zinc-900">
+                    <span className="rounded bg-ink px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-panel">
                       admin
                     </span>
                   )}
                   {user.banned ? (
-                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-red-700 dark:bg-red-950 dark:text-red-400">
+                    <span className="rounded bg-danger/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-danger">
                       banned
                     </span>
                   ) : null}
                 </div>
-                <div className="truncate text-xs text-zinc-500">
+                <div className="truncate font-mono text-xs text-dim">
                   {user.email} · joined{" "}
                   {new Date(user.createdAt).toISOString().slice(0, 10)}
                 </div>
               </div>
               {user.id === session.user.id ? (
-                <span className="text-xs text-zinc-400">you</span>
+                <span className="text-xs text-faint">you</span>
               ) : (
                 <BanButton userId={user.id} banned={Boolean(user.banned)} />
               )}

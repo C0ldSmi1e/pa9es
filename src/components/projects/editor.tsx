@@ -342,39 +342,36 @@ const Editor = ({
   };
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 font-sans dark:bg-black">
-      <header className="relative flex shrink-0 items-center gap-3 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+    <div className="flex h-screen flex-col bg-ground font-sans">
+      <header className="relative flex shrink-0 items-center gap-3 border-b border-edge bg-panel px-4 py-2">
         <Link
           href="/app"
-          className="shrink-0 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          className="shrink-0 text-sm text-dim transition-colors hover:text-ink"
         >
-          ← Projects
+          ← Pages
         </Link>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           maxLength={100}
-          className="w-40 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-zinc-900 outline-none hover:border-zinc-300 focus:border-zinc-500 dark:text-zinc-50 dark:hover:border-zinc-700"
+          className="w-40 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-ink outline-none hover:border-edge focus:border-accent"
         />
         {error && (
-          <span
-            className="truncate text-xs text-red-600 dark:text-red-400"
-            role="alert"
-          >
+          <span className="truncate text-xs text-danger" role="alert">
             {error}
           </span>
         )}
         <span className="flex-1" />
-        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <span className="flex items-center gap-1.5 font-mono text-xs text-dim">
           <span
-            className={`h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-500" : "bg-zinc-400"}`}
+            className={`h-1.5 w-1.5 rounded-full ${live ? "bg-live" : "bg-faint"}`}
           />
           {live ? (
             <a
               href={liveUrl}
               target="_blank"
               rel="noreferrer"
-              className="hover:underline"
+              className="text-live hover:underline"
             >
               {statusText} ↗
             </a>
@@ -382,32 +379,26 @@ const Editor = ({
             <span>{statusText}</span>
           )}
           {behind && latest && (
-            <span className="font-medium text-amber-600 dark:text-amber-400">
-              · latest v{latest.v}
-            </span>
+            <span className="font-medium text-accent">· latest v{latest.v}</span>
           )}
           {saveState === "saving" && <span>· Saving…</span>}
           {saveState === "error" && (
-            <span className="font-medium text-red-600 dark:text-red-400">
-              · Not saved
-            </span>
+            <span className="font-medium text-danger">· Not saved</span>
           )}
         </span>
-        <span className="flex overflow-hidden rounded-md border border-zinc-300 text-xs dark:border-zinc-700">
+        <span className="flex overflow-hidden rounded-md border border-edge font-mono text-[11px]">
           {(
             [
-              ["showEditor", "Code"],
-              ["showPreview", "Preview"],
-              ["showTimeline", "Timeline"],
+              ["showEditor", "code"],
+              ["showPreview", "preview"],
+              ["showTimeline", "timeline"],
             ] as const
           ).map(([key, label]) => (
             <button
               key={key}
               onClick={() => togglePane(key)}
-              className={`px-2 py-1 ${
-                prefs[key]
-                  ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                  : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+              className={`px-2.5 py-1 transition-colors ${
+                prefs[key] ? "bg-ink text-panel" : "text-dim hover:text-ink"
               }`}
             >
               {label}
@@ -417,13 +408,13 @@ const Editor = ({
         <button
           onClick={() => setGearOpen((v) => !v)}
           title="Editor settings"
-          className="shrink-0 rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+          className="shrink-0 rounded-md border border-edge px-2 py-1 text-xs text-dim transition-colors hover:text-ink"
         >
           ⚙
         </button>
         {gearOpen && (
-          <div className="absolute right-3 top-11 z-20 w-44 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
-            <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-sm text-zinc-700 dark:text-zinc-300">
+          <div className="absolute right-3 top-11 z-20 w-44 rounded-xl border border-edge bg-panel p-2 shadow-lg">
+            <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={prefs.vim}
@@ -431,7 +422,7 @@ const Editor = ({
               />
               Vim mode
             </label>
-            <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-sm text-zinc-700 dark:text-zinc-300">
+            <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={prefs.wrap}
@@ -463,7 +454,7 @@ const Editor = ({
         {prefs.showEditor && prefs.showPreview && (
           <div
             onPointerDown={onDividerDown}
-            className="w-1.5 shrink-0 cursor-col-resize bg-zinc-200 hover:bg-indigo-500 dark:bg-zinc-800"
+            className="w-1.5 shrink-0 cursor-col-resize bg-edge transition-colors hover:bg-accent"
           />
         )}
         {prefs.showPreview && (
@@ -488,26 +479,26 @@ const Editor = ({
 
       {restoreTarget && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30"
           onClick={() => setRestoreTarget(null)}
         >
           <div
-            className="w-80 rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            className="w-80 rounded-xl border border-edge bg-panel p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            <div className="mb-4 text-sm font-semibold text-ink">
               Overwrite uncommitted changes?
             </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setRestoreTarget(null)}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                className="rounded-md border border-edge px-3 py-1.5 text-xs font-medium text-dim"
               >
                 Cancel
               </button>
               <button
                 onClick={() => void doRestore(restoreTarget.id)}
-                className="rounded-md border border-red-600 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-600 hover:text-white"
+                className="rounded-md border border-danger px-3 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger hover:text-white"
               >
                 Restore
               </button>

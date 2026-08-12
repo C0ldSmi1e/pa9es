@@ -26,8 +26,8 @@ document.addEventListener("click", (event) => {
 // it can't read app cookies or reach the parent DOM.
 const PreviewPane = ({ html, label }: { html: string; label: string }) => {
   return (
-    <div className="flex min-w-0 flex-1 flex-col bg-white dark:bg-zinc-950">
-      <div className="border-b border-zinc-200 px-3 py-1 text-[11px] uppercase tracking-wider text-zinc-500 dark:border-zinc-800">
+    <div className="flex min-w-0 flex-1 flex-col bg-white">
+      <div className="border-b border-edge bg-panel px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-dim">
         {label}
       </div>
       <iframe

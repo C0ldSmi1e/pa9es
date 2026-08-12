@@ -4,6 +4,7 @@ import { listProjects } from "@/src/server/actions/projects";
 import { CreateProjectForm } from "@/src/components/projects/create-project-form";
 import { DeleteProjectButton } from "@/src/components/projects/delete-project-button";
 import { SignOutButton } from "@/src/components/auth/sign-out-button";
+import { app } from "@/src/server/env";
 import { getSession } from "@/src/server/session";
 
 type PageProps = { searchParams: Promise<{ error?: string }> };
@@ -19,59 +20,71 @@ const AppPage = async ({ searchParams }: PageProps) => {
   }
 
   const { data: projects } = await listProjects({ userId: session.user.id });
+  const urlPrefix = `${session.user.username ?? "you"}.${app.rootDomain}/`;
 
   return (
-    <main className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <div className="mx-auto max-w-2xl space-y-6 p-6">
-        <header className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            pa9es
-          </h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-500">
+    <main className="min-h-screen bg-ground font-sans">
+      <div className="mx-auto max-w-2xl px-6 py-8">
+        <header className="flex items-baseline justify-between border-b border-edge pb-4">
+          <span className="font-mono text-base text-ink">
+            pa<b className="font-semibold text-accent">9</b>es
+          </span>
+          <div className="flex items-baseline gap-4 text-sm">
+            <span className="font-mono text-xs text-dim">
               {session.user.username ?? session.user.email}
             </span>
             <Link
               href="/app/settings"
-              className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              className="text-dim transition-colors hover:text-ink"
             >
               Settings
             </Link>
-            <div className="w-24">
-              <SignOutButton />
-            </div>
+            <SignOutButton />
           </div>
         </header>
 
-        <CreateProjectForm />
+        <div className="mb-7 mt-6">
+          <CreateProjectForm urlPrefix={urlPrefix} />
+        </div>
 
-        <section className="space-y-2">
-          {projects.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700">
-              No projects yet — create your first page above.
-            </p>
-          ) : (
-            projects.map((project) => (
-              <div
-                key={project.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-              >
+        {projects.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-faint p-8 text-center text-sm text-dim">
+            No pages yet — name one above and start typing.
+          </p>
+        ) : (
+          <ul className="divide-y divide-edge border-y border-edge">
+            {projects.map((project) => (
+              <li key={project.id} className="flex items-center gap-2">
                 <Link
                   href={`/app/projects/${project.id}`}
-                  className="min-w-0 flex-1"
+                  className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-2.5 py-3.5 transition-colors hover:bg-panel"
                 >
-                  <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                    {project.title}
-                  </div>
-                  <div className="truncate text-xs text-zinc-500">
-                    /{project.slug} · {project.isPublished ? "Live" : "Not live"}
-                  </div>
+                  <span className="min-w-0 truncate">
+                    <span className="text-sm font-medium text-ink">
+                      {project.title}
+                    </span>
+                    <span className="ml-2.5 font-mono text-xs text-dim">
+                      /{project.slug}
+                    </span>
+                  </span>
+                  <span
+                    className={`flex shrink-0 items-center gap-1.5 font-mono text-xs ${
+                      project.isPublished ? "text-live" : "text-dim"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        project.isPublished ? "bg-live" : "bg-faint"
+                      }`}
+                    />
+                    {project.isPublished ? "live" : "draft"}
+                  </span>
                 </Link>
                 <DeleteProjectButton projectId={project.id} />
-              </div>
-            ))
-          )}
-        </section>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </main>
   );

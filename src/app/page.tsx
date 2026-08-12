@@ -1,52 +1,89 @@
 import Link from "next/link";
+import { TypewriterDemo } from "@/src/components/home/typewriter-demo";
 import { app } from "@/src/server/env";
 import { getSession } from "@/src/server/session";
+
+const primaryBtn =
+  "rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-panel transition hover:opacity-85 active:translate-y-px";
+const ghostBtn =
+  "rounded-lg border border-edge px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-faint";
 
 const Home = async () => {
   const session = await getSession();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-zinc-50 p-6 font-sans dark:bg-black">
-      <div className="max-w-md space-y-4 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          pa9es
-        </h1>
-        <p className="text-lg text-zinc-700 dark:text-zinc-300">
-          One HTML file, live in thirty seconds.
-        </p>
-        <p className="text-sm text-zinc-500">
-          Write or paste your HTML, name it, publish. No build step, no repo, no
-          subscription.
-        </p>
-        <p className="rounded-lg bg-zinc-100 px-4 py-2 font-mono text-sm text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-          you.{app.rootDomain}/your-page
-        </p>
-      </div>
+    <main className="min-h-screen bg-ground font-sans">
+      <div className="mx-auto max-w-5xl px-6 pb-16 pt-7">
+        <nav className="mb-16 flex items-center justify-between md:mb-20">
+          <span className="font-mono text-base text-ink">
+            pa<b className="font-semibold text-accent">9</b>es
+          </span>
+          <div className="flex items-center gap-2">
+            {session ? (
+              <Link
+                href="/app"
+                className="rounded-lg bg-ink px-3.5 py-2 text-sm font-medium text-panel transition hover:opacity-85"
+              >
+                Open dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-lg px-3.5 py-2 text-sm text-dim transition-colors hover:text-ink"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-lg bg-ink px-3.5 py-2 text-sm font-medium text-panel transition hover:opacity-85"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
+          </div>
+        </nav>
 
-      <div className="flex items-center gap-3">
-        {session ? (
-          <Link
-            href="/app"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            Open dashboard
-          </Link>
-        ) : (
-          <>
-            <Link
-              href="/signup"
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              Get started
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-            >
-              Log in
-            </Link>
-          </>
-        )}
+        <header className="mb-14 text-center">
+          <h1 className="mb-4 text-balance text-[clamp(2.4rem,7vw,4rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-ink">
+            <span className="font-mono font-medium tracking-[-0.04em] text-accent">
+              <span className="font-normal text-faint">&lt;</span>html
+              <span className="font-normal text-faint">&gt;</span>
+            </span>{" "}
+            is all you need
+          </h1>
+          <p className="mx-auto mb-8 max-w-xl text-lg leading-relaxed text-dim">
+            One file, live at{" "}
+            <span className="font-mono text-[0.95em]">
+              you.{app.rootDomain}/anything
+            </span>{" "}
+            in thirty seconds. No build step, no repo, no subscription.
+          </p>
+          <div className="flex justify-center gap-3">
+            {session ? (
+              <Link href="/app" className={primaryBtn}>
+                Open dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/signup" className={primaryBtn}>
+                  Create a page
+                </Link>
+                <Link href="/login" className={ghostBtn}>
+                  Log in
+                </Link>
+              </>
+            )}
+          </div>
+        </header>
+
+        <TypewriterDemo />
+
+        <p className="mt-12 text-center text-sm text-faint">
+          Landing pages · demos · résumés · the page your{" "}
+          <span className="font-medium text-dim">AI just wrote you</span> · © pa9es
+        </p>
       </div>
     </main>
   );

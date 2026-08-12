@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Design tokens — "daylight brass": warm gray ground, white panels, near-black
+   ink, one brass accent. Rendered user pages (preview panes, published output)
+   stay plain white: the artifact is always brighter than the tooling. */
+@theme {
+  --color-ground: #f2f2ef;
+  --color-panel: #ffffff;
+  --color-panel-2: #f7f7f4;
+  --color-edge: #e2e2db;
+  --color-ink: #1a1a1c;
+  --color-dim: #6d6d72;
+  --color-faint: #b9b9b2;
+  --color-accent: #9a7418;
+  --color-live: #1d8a4a;
+  --color-danger: #c23a3a;
+  --color-code-tag: #8a6410;
+  --color-code-str: #3c8340;
+  --color-code-punc: #9a9a92;
+
+  --animate-caret: caret 1s steps(1) infinite;
+  @keyframes caret {
+    50% {
+      opacity: 0;
+    }
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+::selection {
+  background: #f0e2b0;
+  color: #1a1a1c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caret {
+    animation: none;
+  }
 }
