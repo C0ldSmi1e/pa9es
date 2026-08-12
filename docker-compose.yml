@@ -1,0 +1,36 @@
+name: pa9es
+
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: pa9es-builder
+    user: bun
+    command: ["bun", "scripts/migrate.ts"]
+    env_file:
+      - .env
+    volumes:
+      - pa9es-data:/app/data
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pa9es
+    container_name: pa9es
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    env_file:
+      - .env
+    volumes:
+      - pa9es-data:/app/data
+
+volumes:
+  pa9es-data:
