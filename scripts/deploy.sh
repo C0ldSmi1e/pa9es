@@ -5,7 +5,7 @@
 # run docker.
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-$HOME/apps/pa9es}"
+APP_DIR="${APP_DIR:-$HOME/pa9es}"
 cd "$APP_DIR"
 
 # The server clone is a deploy target, not a workspace — force it to match
