@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { BanButton } from "@/src/components/admin/ban-button";
+import { adminProjectStats } from "@/src/server/actions/admin";
 import { auth } from "@/src/server/auth";
 import { getSession } from "@/src/server/session";
 
@@ -26,6 +27,9 @@ const AdminPage = async () => {
     (typeof listedUsers)[number] & { username: string | null }
   >;
 
+  const stats = await adminProjectStats({ actorRole: session.user.role });
+  const statsByUser = new Map(stats.map((row) => [row.userId, row]));
+
   return (
     <main className="min-h-screen bg-ground font-sans">
       <div className="mx-auto max-w-3xl space-y-5 px-6 py-8">
@@ -45,39 +49,48 @@ const AdminPage = async () => {
         </header>
 
         <section className="divide-y divide-edge border-y border-edge">
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className="flex items-center justify-between gap-3 px-2.5 py-3.5"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium text-ink">
-                    {user.username ?? user.name}
-                  </span>
-                  {user.role === "admin" && (
-                    <span className="rounded bg-ink px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-panel">
-                      admin
+          {users.map((user) => {
+            const userStats = statsByUser.get(user.id);
+            const total = userStats?.total ?? 0;
+            const published = userStats?.published ?? 0;
+            return (
+              <div key={user.id} className="flex items-center gap-3 pr-2.5">
+                <Link
+                  href={`/admin/users/${user.id}`}
+                  className="min-w-0 flex-1 px-2.5 py-3.5 transition-colors hover:bg-panel"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-medium text-ink">
+                      {user.username ?? user.name}
                     </span>
-                  )}
-                  {user.banned ? (
-                    <span className="rounded bg-danger/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-danger">
-                      banned
-                    </span>
-                  ) : null}
-                </div>
-                <div className="truncate font-mono text-xs text-dim">
-                  {user.email} · joined{" "}
-                  {new Date(user.createdAt).toISOString().slice(0, 10)}
-                </div>
+                    {user.role === "admin" && (
+                      <span className="rounded bg-ink px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-panel">
+                        admin
+                      </span>
+                    )}
+                    {user.banned ? (
+                      <span className="rounded bg-danger/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-danger">
+                        banned
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="truncate font-mono text-xs text-dim">
+                    {user.email} · joined{" "}
+                    {new Date(user.createdAt).toISOString().slice(0, 10)} · {total}{" "}
+                    page{total === 1 ? "" : "s"}
+                    {published > 0 && (
+                      <span className="text-live"> · {published} live</span>
+                    )}
+                  </div>
+                </Link>
+                {user.id === session.user.id ? (
+                  <span className="text-xs text-faint">you</span>
+                ) : (
+                  <BanButton userId={user.id} banned={Boolean(user.banned)} />
+                )}
               </div>
-              {user.id === session.user.id ? (
-                <span className="text-xs text-faint">you</span>
-              ) : (
-                <BanButton userId={user.id} banned={Boolean(user.banned)} />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </section>
       </div>
     </main>

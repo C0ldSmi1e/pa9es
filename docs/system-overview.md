@@ -38,6 +38,12 @@ In MVP, I need:
 - settings page (`/app/settings`): change password — revokes all other sessions
 - admin dashboard
   - user management
+  - read-only project views (`src/server/actions/admin.ts` — separate from the
+    owner-scoped actions, so those keep their userId-filter invariant): per-user
+    page list (`/admin/users/[userId]`) and project inspection with rendered
+    preview + commit timeline (`/admin/projects/[projectId]`). No content
+    mutations — moderation is the ban button (banned owners' pages stop being
+    served)
 - user dashboard
 - basic official site and relevant auth pages (signup, login)
 - users can create or delete a project

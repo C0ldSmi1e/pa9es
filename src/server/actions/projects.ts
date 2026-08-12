@@ -245,4 +245,5 @@ export {
   findOwnedProject,
   latestCommitHtml,
   toDetail,
+  toSummary,
 };
