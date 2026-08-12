@@ -31,6 +31,12 @@ const AppPage = async ({ searchParams }: PageProps) => {
             <span className="text-sm text-zinc-500">
               {session.user.username ?? session.user.email}
             </span>
+            <Link
+              href="/app/settings"
+              className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              Settings
+            </Link>
             <div className="w-24">
               <SignOutButton />
             </div>
