@@ -26,6 +26,7 @@ const Timeline = ({
   selection,
   uncommitted,
   busy,
+  commitBlocked,
   pulseId,
   onSelect,
   onCommit,
@@ -38,6 +39,7 @@ const Timeline = ({
   selection: string;
   uncommitted: boolean;
   busy: boolean;
+  commitBlocked: string | null;
   pulseId: string | null;
   onSelect: (selection: string) => void;
   onCommit: (message: string) => Promise<boolean>;
@@ -123,11 +125,14 @@ const Timeline = ({
               ) : (
                 <button
                   className={tinyPrimary}
-                  disabled={busy || !uncommitted}
+                  disabled={busy || !uncommitted || commitBlocked !== null}
                   onClick={() => setCommitting(true)}
                 >
                   Commit
                 </button>
+              )}
+              {commitBlocked && (
+                <div className="mt-1 text-[11px] text-danger">{commitBlocked}</div>
               )}
             </div>
           )}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { content } from "@/src/config/constants";
 import { api } from "@/src/lib/api";
 import type {
   CommitDetail,
@@ -32,6 +33,16 @@ const DEFAULT_PREFS: Prefs = {
 
 const PREFS_KEY = "pa9es.editor";
 
+// The server enforces the limit in UTF-8 bytes (what SQLite stores), so the
+// editor must measure the same way — string length undercounts multibyte.
+const textEncoder = new TextEncoder();
+const draftByteSize = (value: string): number => textEncoder.encode(value).length;
+
+const formatBytes = (n: number): string =>
+  n >= 1024 * 1024
+    ? `${(n / (1024 * 1024)).toFixed(1).replace(/\.0$/, "")} MB`
+    : `${Math.ceil(n / 1024)} KB`;
+
 const Editor = ({
   initial,
   initialCommits,
@@ -48,6 +59,9 @@ const Editor = ({
   const [uncommitted, setUncommitted] = useState(initial.uncommitted);
   const [selection, setSelection] = useState<string>("draft");
   const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [draftBytes, setDraftBytes] = useState(() =>
+    draftByteSize(initial.draftHtml),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
@@ -122,6 +136,17 @@ const Editor = ({
       setSaveState("saved");
       return;
     }
+    // Over-limit drafts can never succeed server-side — skip the upload
+    // instead of burning a request per debounce to learn the same. The
+    // timeline's "file too large" hint carries the reason.
+    if (body.draftHtml !== undefined) {
+      const bytes = draftByteSize(body.draftHtml);
+      setDraftBytes(bytes);
+      if (bytes > content.maxHtmlBytes) {
+        setSaveState("error");
+        return;
+      }
+    }
     inFlightRef.current = true;
     setSaveState("saving");
     try {
@@ -175,6 +200,7 @@ const Editor = ({
     scheduleSave();
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     previewTimerRef.current = setTimeout(() => {
+      setDraftBytes(draftByteSize(draftRef.current));
       if (selectionRef.current === "draft") {
         setPreview({ html: draftRef.current, label: "Draft" });
       }
@@ -248,6 +274,20 @@ const Editor = ({
     setError(null);
     try {
       await flushSave();
+      // An autosave may still be in flight (flushSave no-ops then) — wait
+      // for it to settle so the synced check sees the final state.
+      for (let i = 0; i < 50 && inFlightRef.current; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      // The server snapshots ITS draft, not the editor's. Committing while
+      // out of sync would silently publish stale content.
+      if (
+        draftRef.current !== syncedDraftRef.current ||
+        titleRef.current !== syncedTitleRef.current
+      ) {
+        setError("Draft isn't saved — resolve the save error before committing");
+        return false;
+      }
       const wasEmptyTimeline = commits.length === 0;
       const summary = await api<CommitSummary>(
         `/api/projects/${initial.id}/commits`,
@@ -323,6 +363,7 @@ const Editor = ({
       draftRef.current = detail.draftHtml;
       syncedDraftRef.current = detail.draftHtml;
       setDraft(detail.draftHtml);
+      setDraftBytes(draftByteSize(detail.draftHtml));
       setUncommitted(detail.uncommitted);
       setSaveState("saved");
       setSelection("draft");
@@ -495,6 +536,11 @@ const Editor = ({
             selection={selection}
             uncommitted={uncommitted}
             busy={busy}
+            commitBlocked={
+              draftBytes > content.maxHtmlBytes
+                ? `Too large: ${formatBytes(draftBytes)} / ${formatBytes(content.maxHtmlBytes)}`
+                : null
+            }
             pulseId={pulseId}
             onSelect={(next) => void select(next)}
             onCommit={doCommit}
