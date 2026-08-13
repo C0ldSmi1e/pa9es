@@ -106,15 +106,18 @@ const indexPage = ({
   username: string;
   rootDomain: string;
   homeUrl: string;
-  pages: Array<{ slug: string; title: string }>;
+  pages: Array<{ slug: string; title: string; iconEmoji: string | null }>;
 }): Response => {
   const rows = pages
-    .map(
-      ({ slug, title }) =>
-        `<li><a href="/${escapeHtml(slug)}"><span class="title">${escapeHtml(
-          title,
-        )}</span><span class="slug">/${escapeHtml(slug)}</span></a></li>`,
-    )
+    .map(({ slug, title, iconEmoji }) => {
+      // Same rule as the dashboard list: icon only when set, no reserved slot.
+      const icon = iconEmoji
+        ? `<span class="icon">${escapeHtml(iconEmoji)}</span>`
+        : "";
+      return `<li><a href="/${escapeHtml(slug)}"><span class="title">${icon}${escapeHtml(
+        title,
+      )}</span></a></li>`;
+    })
     .join("\n");
 
   const html = `<!doctype html>
@@ -134,13 +137,11 @@ const indexPage = ({
            font-size: .78rem; color: #6d6d72; }
   ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid #e2e2db; }
   li { border-bottom: 1px solid #e2e2db; }
-  li a { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
-         padding: .9rem .35rem; text-decoration: none; color: #1a1a1c;
+  li a { display: block; padding: .9rem .35rem; text-decoration: none; color: #1a1a1c;
          transition: background .12s ease; }
   li a:hover { background: #ffffff; }
   .title { font-size: .95rem; font-weight: 550; }
-  .slug { font-family: ui-monospace, monospace; font-size: .78rem;
-          color: #6d6d72; white-space: nowrap; }
+  .icon { margin-right: .5rem; }
   footer { margin-top: 2.5rem; font-size: .8rem; color: #6d6d72; }
   footer a { color: #6d6d72; text-decoration: underline; text-underline-offset: 3px; }
   footer a:hover { color: #1a1a1c; }

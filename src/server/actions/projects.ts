@@ -280,9 +280,13 @@ const listPublishedPages = async ({
   username,
 }: {
   username: string;
-}): Promise<Array<{ slug: string; title: string }>> => {
+}): Promise<Array<{ slug: string; title: string; iconEmoji: string | null }>> => {
   return db
-    .select({ slug: project.slug, title: project.title })
+    .select({
+      slug: project.slug,
+      title: project.title,
+      iconEmoji: project.iconEmoji,
+    })
     .from(project)
     .innerJoin(user, eq(project.userId, user.id))
     .where(

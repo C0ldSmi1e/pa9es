@@ -60,6 +60,8 @@ In MVP, I need:
   SVG-wrapped emoji, cached hard because the href carries `?v=<emoji>`.
   The serving path injects a `<link rel="icon">` into published HTML only
   when the page declares no icon of its own — author markup always wins.
+  The icon also shows next to the title in the dashboard list and the
+  subdomain index.
 
 ## Version model
 
