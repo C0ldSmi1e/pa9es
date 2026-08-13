@@ -37,7 +37,7 @@ In MVP, I need:
 
 - [Better Auth](https://better-auth.com/) for auth, email and password
 - email verification before sign-in (Resend)
-- settings page (`/app/settings`): change password — revokes all other sessions
+- settings page (`/app/settings`)
 - admin dashboard
   - user management
   - read-only project views (`src/server/actions/admin.ts` — separate from the
