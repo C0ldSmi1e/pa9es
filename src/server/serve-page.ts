@@ -1,3 +1,10 @@
+// Brand favicon for pa9es-owned chrome on user subdomains (the index and the
+// 404) — the "9" from the wordmark. Inlined as a data URI so these pages stay
+// a single response; published pages are untouched (they get the project's
+// emoji icon, or the author's own markup).
+const BRAND_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#1a1a1c"/><text x="50" y="50" dy=".36em" text-anchor="middle" font-family="ui-monospace,SF Mono,Menlo,Consolas,monospace" font-size="72" font-weight="600" fill="#9a7418">9</text></svg>`;
+const BRAND_ICON_LINK = `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(BRAND_ICON_SVG)}">`;
+
 // Minimal branded 404 for user subdomains. Deliberately plain HTML — user
 // subdomains never render the app (and never see its cookies).
 const NOT_FOUND_HTML = `<!doctype html>
@@ -5,6 +12,7 @@ const NOT_FOUND_HTML = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${BRAND_ICON_LINK}
 <title>Nothing here · pa9es</title>
 <style>
   body { margin: 0; display: grid; place-items: center; min-height: 100vh;
@@ -125,6 +133,7 @@ const indexPage = ({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${BRAND_ICON_LINK}
 <title>${escapeHtml(username)} · pa9es</title>
 <style>
   body { margin: 0; min-height: 100vh; background: #f2f2ef; color: #1a1a1c;

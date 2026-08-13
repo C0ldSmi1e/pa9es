@@ -61,7 +61,10 @@ In MVP, I need:
   The serving path injects a `<link rel="icon">` into published HTML only
   when the page declares no icon of its own — author markup always wins.
   The icon also shows next to the title in the dashboard list and the
-  subdomain index.
+  subdomain index. The pa9es-owned chrome on user subdomains (the index at
+  the subdomain root and the branded 404) carries a default pa9es brand
+  favicon — an inline SVG data URI in `src/server/serve-page.ts` — so those
+  tabs aren't blank; published pages are untouched by it.
 
 ## Version model
 
