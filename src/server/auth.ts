@@ -2,6 +2,8 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, username } from "better-auth/plugins";
+import { credits } from "@/src/config/constants";
+import { grantCredits } from "@/src/server/actions/credits";
 import { db } from "@/src/server/db";
 import * as schema from "@/src/server/db/schema";
 import { sendEmail } from "@/src/server/emails/send";
@@ -42,6 +44,22 @@ const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       const { subject, html } = verificationEmail({ name: user.name, url });
       await sendEmail({ to: user.email, subject, html });
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        // Signup bonus. Keyed on the user id, so a replayed hook can never
+        // double-grant.
+        after: async (createdUser) => {
+          grantCredits({
+            userId: createdUser.id,
+            amount: credits.signupBonus,
+            kind: "signup_bonus",
+            refId: createdUser.id,
+          });
+        },
+      },
     },
   },
   plugins: [

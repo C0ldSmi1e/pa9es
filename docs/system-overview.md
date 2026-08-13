@@ -60,6 +60,31 @@ In MVP, I need:
 - Production is a pointer to one commit ("Make live" / "Unpublish" in the timeline). Rollback = make an older commit live.
 - Restoring a commit overwrites the draft; the UI confirms first when uncommitted changes would be lost.
 
+## Credits
+
+- Bookkeeping is an append-only ledger (`credit_ledger`): one signed entry per
+  balance change, in internal units (`credits.scale` units = 1 displayed
+  credit — see `src/config/constants.ts`). Entries are never edited or
+  deleted; corrections are compensating entries. `user.credit_balance` is the
+  denormalized sum, updated in the same transaction as every entry
+  (`src/server/actions/credits.ts`).
+- Idempotency: at most one entry per `(kind, refId)` (unique index; NULL
+  refIds don't collide). Replayed grants/charges are silent no-ops.
+- Pricing lives in config only; the ledger records amounts as charged at the
+  time. Current policy: signup grants `credits.signupBonus`; the first-ever
+  go-live of a project charges `credits.publishCost`, atomically with the
+  publish, keyed on the project id — so republish after unpublish and
+  rollbacks are free by idempotency. Insufficient balance →
+  `PaymentRequiredError` → 402; no refunds on unpublish/delete.
+- Kinds are an open set (`signup_bonus`, `publish_charge`,
+  `admin_adjustment`, and future `referral_bonus` / `purchase` / `ai_usage`).
+  Payment rails and new charge types are just new entry writers — no schema
+  change.
+- Surfaces: balance chip on `/app`, balance + history + pricing note in
+  `/app/settings`, admin grant/deduct (signed `admin_adjustment`, optional
+  note) on `/admin/users/[userId]` via `POST /api/admin/credits`; own balance
+  and history at `GET /api/credits` and `GET /api/credits/ledger`.
+
 ## Email
 
 - Resend for transactional email (`RESEND_API_KEY`, `EMAIL_FROM`). Without a key, dev logs emails (their links) to the server console instead of sending; production refuses to run the send.

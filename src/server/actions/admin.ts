@@ -1,6 +1,8 @@
 import { count, desc, eq } from "drizzle-orm";
 import { pagination as paginationConfig } from "@/src/config/constants";
+import type { LedgerEntry } from "@/src/schemas/credits";
 import type { CommitSummary, ProjectSummary } from "@/src/schemas/project";
+import { listLedger } from "@/src/server/actions/credits";
 import { toSummary } from "@/src/server/actions/projects";
 import { db } from "@/src/server/db";
 import { commit, project, user } from "@/src/server/db/schema";
@@ -23,6 +25,7 @@ type AdminUserDetail = {
   username: string | null;
   role: string | null;
   banned: boolean;
+  creditBalance: number;
   createdAt: string;
 };
 
@@ -74,6 +77,7 @@ const adminGetUser = async ({
       username: user.username,
       role: user.role,
       banned: user.banned,
+      creditBalance: user.creditBalance,
       createdAt: user.createdAt,
     })
     .from(user)
@@ -185,11 +189,29 @@ const adminListCommitsForProject = async ({
   return rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
 };
 
+// One user's recent ledger entries for the admin user view. Read-only reuse
+// of the owner-scoped query — the admin mutation path is the credits API
+// route, which writes admin_adjustment entries.
+const adminListLedgerForUser = async ({
+  actorRole,
+  userId,
+  limit,
+}: {
+  actorRole: ActorRole;
+  userId: string;
+  limit: number;
+}): Promise<LedgerEntry[]> => {
+  assertAdmin(actorRole);
+  const { data } = await listLedger({ userId, offset: 0, limit });
+  return data;
+};
+
 export {
   adminProjectStats,
   adminGetUser,
   adminListProjectsForUser,
   adminGetProject,
   adminListCommitsForProject,
+  adminListLedgerForUser,
 };
 export type { AdminProjectDetail, AdminProjectStats, AdminUserDetail };

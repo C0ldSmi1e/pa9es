@@ -1,9 +1,11 @@
 import { and, desc, eq, sql } from "drizzle-orm";
+import { credits } from "@/src/config/constants";
 import type {
   CommitDetail,
   CommitSummary,
   ProjectDetail,
 } from "@/src/schemas/project";
+import { spendCredits } from "@/src/server/actions/credits";
 import {
   findOwnedProject,
   latestCommitHtml,
@@ -104,21 +106,40 @@ const getCommit = async (args: {
 };
 
 // Points production at a commit and refreshes the denormalized serving copy.
+// The first-ever go-live of a project charges credits.publishCost, atomically
+// with the pointer update (insufficient balance rolls the whole thing back).
+// The charge is ledger-keyed on the project id, so republish after unpublish
+// and rollbacks are free by idempotency — no extra logic.
 const makeLive = async (args: {
   userId: string;
   projectId: string;
   commitId: string;
 }): Promise<ProjectDetail> => {
   const target = await findOwnedCommit(args);
-  const [row] = await db
-    .update(project)
-    .set({
-      liveCommitId: target.id,
-      publishedHtml: target.html,
-      publishedAt: new Date(),
-    })
-    .where(eq(project.id, args.projectId))
-    .returning();
+  const row = db.transaction((tx) => {
+    if (credits.publishCost > 0) {
+      spendCredits(
+        {
+          userId: args.userId,
+          amount: credits.publishCost,
+          kind: "publish_charge",
+          refId: args.projectId,
+          projectId: args.projectId,
+        },
+        tx,
+      );
+    }
+    return tx
+      .update(project)
+      .set({
+        liveCommitId: target.id,
+        publishedHtml: target.html,
+        publishedAt: new Date(),
+      })
+      .where(eq(project.id, args.projectId))
+      .returning()
+      .get();
+  });
   return toDetail(row);
 };
 

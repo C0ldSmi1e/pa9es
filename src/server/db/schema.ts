@@ -45,6 +45,10 @@ const user = sqliteTable("user", {
   banned: integer("banned", { mode: "boolean" }).default(false),
   banReason: text("ban_reason"),
   banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+  // Denormalized SUM(credit_ledger.delta), in internal units (see
+  // src/config/constants.ts `credits.scale`). Updated in the same
+  // transaction as every ledger insert — reads never sum the ledger.
+  creditBalance: integer("credit_balance").default(0).notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(nowMs)
     .notNull(),
@@ -203,6 +207,43 @@ const commit = sqliteTable(
   (table) => [uniqueIndex("commit_project_id_v_idx").on(table.projectId, table.v)],
 );
 
+// Append-only credit bookkeeping. Every balance change — grants, charges,
+// admin adjustments, future purchases/AI metering — is one signed entry;
+// rows are never updated or deleted (corrections are compensating entries).
+// Pricing lives in config, never here: the ledger records what happened at
+// the amounts of the time.
+const creditLedger = sqliteTable(
+  "credit_ledger",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // Signed, in internal units (credits.scale units = 1 displayed credit).
+    delta: integer("delta").notNull(),
+    // Open set: signup_bonus | publish_charge | admin_adjustment |
+    // referral_bonus | purchase | ai_usage | …
+    kind: text("kind").notNull(),
+    // Idempotency scope: at most one entry per (kind, refId). NULL refIds
+    // are distinct in SQLite unique indexes, so unkeyed entries (admin
+    // adjustments) never collide.
+    refId: text("ref_id"),
+    note: text("note"),
+    // Context only — deliberately no FK, so history survives project
+    // deletion (same reasoning as project.liveCommitId).
+    projectId: text("project_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(nowMs)
+      .notNull(),
+  },
+  (table) => [
+    index("credit_ledger_user_id_idx").on(table.userId),
+    uniqueIndex("credit_ledger_kind_ref_id_idx").on(table.kind, table.refId),
+  ],
+);
+
 // NOTE: the CLI also emits a `relations()` block, but drizzle-orm v1 replaced
 // that API with `defineRelations`. FKs above carry the real constraints; add
 // a defineRelations file if/when the db.query relational API is needed.
@@ -210,6 +251,7 @@ const commit = sqliteTable(
 type User = typeof user.$inferSelect;
 type Project = typeof project.$inferSelect;
 type Commit = typeof commit.$inferSelect;
+type CreditLedgerEntry = typeof creditLedger.$inferSelect;
 
-export { user, session, account, verification, project, commit };
-export type { User, Project, Commit };
+export { user, session, account, verification, project, commit, creditLedger };
+export type { User, Project, Commit, CreditLedgerEntry };

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { formatCredits } from "@/src/lib/credits";
+import { getBalance } from "@/src/server/actions/credits";
 import { listProjects } from "@/src/server/actions/projects";
 import { CreateProjectForm } from "@/src/components/projects/create-project-form";
 import { DeleteProjectButton } from "@/src/components/projects/delete-project-button";
@@ -20,6 +22,7 @@ const AppPage = async ({ searchParams }: PageProps) => {
   }
 
   const { data: projects } = await listProjects({ userId: session.user.id });
+  const { balance } = await getBalance({ userId: session.user.id });
   const urlPrefix = `${session.user.username ?? "you"}.${app.rootDomain}/`;
   // Live links use the canonical protocol, same as the editor's status chip.
   const protocol = new URL(authConfig.url).protocol;
@@ -35,6 +38,13 @@ const AppPage = async ({ searchParams }: PageProps) => {
             <span className="font-mono text-xs text-dim">
               {session.user.username ?? session.user.email}
             </span>
+            <Link
+              href="/app/settings"
+              title="Credit balance"
+              className="font-mono text-xs text-dim transition-colors hover:text-ink"
+            >
+              {formatCredits(balance)} credits
+            </Link>
             <Link
               href="/app/settings"
               className="text-dim transition-colors hover:text-ink"

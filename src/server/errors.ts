@@ -17,6 +17,15 @@ class BadRequestError extends Error {
   }
 }
 
+// Caller's credit balance can't cover the attempted action. Distinct from
+// BadRequestError so clients can route the user to a top-up flow.
+class PaymentRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaymentRequiredError";
+  }
+}
+
 // Caller is not authenticated. No credentials, or credentials are invalid /
 // expired. Typically thrown by requireAuth when an unauthenticated request
 // reaches a protected route.
@@ -110,6 +119,7 @@ const isForeignKeyViolation = (error: unknown): boolean =>
 
 export {
   BadRequestError,
+  PaymentRequiredError,
   AuthenticationError,
   AuthorizationError,
   NotFoundError,

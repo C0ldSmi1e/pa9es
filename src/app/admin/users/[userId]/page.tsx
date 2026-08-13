@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { formatCredits, ledgerKindLabel } from "@/src/lib/credits";
 import { BanButton } from "@/src/components/admin/ban-button";
-import { adminGetUser, adminListProjectsForUser } from "@/src/server/actions/admin";
+import { CreditAdjustForm } from "@/src/components/admin/credit-adjust-form";
+import {
+  adminGetUser,
+  adminListLedgerForUser,
+  adminListProjectsForUser,
+} from "@/src/server/actions/admin";
 import { app, authConfig } from "@/src/server/env";
 import { NotFoundError } from "@/src/server/errors";
 import { getSession } from "@/src/server/session";
@@ -22,9 +28,11 @@ const AdminUserPage = async ({ params }: PageProps) => {
   const actorRole = session.user.role;
   let target;
   let projects;
+  let ledger;
   try {
     target = await adminGetUser({ actorRole, userId });
     projects = await adminListProjectsForUser({ actorRole, userId });
+    ledger = await adminListLedgerForUser({ actorRole, userId, limit: 10 });
   } catch (error) {
     if (error instanceof NotFoundError) {
       notFound();
@@ -91,6 +99,50 @@ const AdminUserPage = async ({ params }: PageProps) => {
               </dd>
             </div>
           </dl>
+        </section>
+
+        <section className="rounded-xl border border-edge bg-panel p-5">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-dim">
+              Credits
+            </h2>
+            <span className="font-mono text-sm font-semibold text-ink">
+              {formatCredits(target.creditBalance)}
+            </span>
+          </div>
+          {ledger.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {ledger.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex items-baseline justify-between gap-3 text-sm"
+                >
+                  <span className="min-w-0 truncate text-dim">
+                    {ledgerKindLabel(entry.kind)}
+                    {entry.note && (
+                      <span className="text-faint"> · {entry.note}</span>
+                    )}
+                  </span>
+                  <span className="flex shrink-0 items-baseline gap-2.5">
+                    <span className="font-mono text-[11px] text-faint">
+                      {entry.createdAt.slice(0, 10)}
+                    </span>
+                    <span
+                      className={`font-mono text-xs ${
+                        entry.delta > 0 ? "text-live" : "text-ink"
+                      }`}
+                    >
+                      {entry.delta > 0 ? "+" : ""}
+                      {formatCredits(entry.delta)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4">
+            <CreditAdjustForm userId={target.id} />
+          </div>
         </section>
 
         {projects.length === 0 ? (

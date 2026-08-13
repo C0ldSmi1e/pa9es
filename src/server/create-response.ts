@@ -6,6 +6,7 @@ import {
   BadRequestError,
   ConflictError,
   NotFoundError,
+  PaymentRequiredError,
   RateLimitError,
   UpstreamError,
 } from "@/src/server/errors";
@@ -62,6 +63,11 @@ const errorToResponse = (error: unknown): NextResponse => {
   if (error instanceof AuthenticationError) {
     return NextResponse.json(createErrorResponse({ message: error.message }), {
       status: 401,
+    });
+  }
+  if (error instanceof PaymentRequiredError) {
+    return NextResponse.json(createErrorResponse({ message: error.message }), {
+      status: 402,
     });
   }
   if (error instanceof AuthorizationError) {
