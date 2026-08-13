@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- pa9es brand mark: the "9" from the wordmark, brass on ink, daylight-brass theme -->
+  <rect width="64" height="64" rx="14" fill="#1a1a1c"/>
+  <g fill="none" stroke="#d4a13c" stroke-width="7.5" stroke-linecap="round">
+    <circle cx="31.5" cy="26.5" r="10"/>
+    <path d="M41.5 26.5v6.5c0 9.5-5 14-13.5 15.2"/>
+  </g>
+</svg>

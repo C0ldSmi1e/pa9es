@@ -9,5 +9,5 @@ export const pagination = {
 };
 
 export const content = {
-  maxHtmlBytes: 5 * 1024 * 1024,
+  maxHtmlBytes: 1024 * 1024,
 };
