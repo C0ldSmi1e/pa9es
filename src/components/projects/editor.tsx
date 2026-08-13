@@ -81,9 +81,9 @@ const Editor = ({
   const syncedTitleRef = useRef(initial.title);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlightRef = useRef(false);
+  // Resolves when saving has settled: synced, or blocked (oversize/failed).
+  const inFlightRef = useRef<Promise<void> | null>(null);
   const selectionRef = useRef("draft");
-  const flushSaveRef = useRef<() => Promise<void>>(async () => {});
   const commitHtmlCache = useRef(new Map<string, string>());
   const editorPaneRef = useRef<HTMLDivElement>(null);
 
@@ -126,56 +126,55 @@ const Editor = ({
   };
 
   // ── autosave: debounced PATCH; latest wins; explicit error state ──
-  const flushSave = useCallback(async () => {
-    if (inFlightRef.current) return;
-    const body: { draftHtml?: string; title?: string } = {};
-    if (draftRef.current !== syncedDraftRef.current)
-      body.draftHtml = draftRef.current;
-    if (titleRef.current !== syncedTitleRef.current) body.title = titleRef.current;
-    if (Object.keys(body).length === 0) {
-      setSaveState("saved");
-      return;
-    }
-    // Over-limit drafts can never succeed server-side — skip the upload
-    // instead of burning a request per debounce to learn the same. The
-    // timeline's "file too large" hint carries the reason.
-    if (body.draftHtml !== undefined) {
-      const bytes = draftByteSize(body.draftHtml);
-      setDraftBytes(bytes);
-      if (bytes > content.maxHtmlBytes) {
-        setSaveState("error");
-        return;
-      }
-    }
-    inFlightRef.current = true;
-    setSaveState("saving");
-    try {
-      const detail = await api<ProjectDetail>(`/api/projects/${initial.id}`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-      if (body.draftHtml !== undefined) syncedDraftRef.current = body.draftHtml;
-      if (body.title !== undefined) syncedTitleRef.current = body.title;
-      setUncommitted(detail.uncommitted);
-      inFlightRef.current = false;
-      // Content changed while the request was in flight → save again.
-      if (
+  // Returns a promise that settles only when saving is done: refs synced, or
+  // blocked (over the size limit / request failed). Concurrent callers join
+  // the same run instead of skipping.
+  const flushSave = useCallback((): Promise<void> => {
+    if (inFlightRef.current) return inFlightRef.current;
+
+    const run = (async () => {
+      // Latest wins: keep saving until the refs are clean or we can't proceed.
+      while (
         draftRef.current !== syncedDraftRef.current ||
         titleRef.current !== syncedTitleRef.current
       ) {
-        void flushSaveRef.current();
-      } else {
-        setSaveState("saved");
-      }
-    } catch {
-      inFlightRef.current = false;
-      setSaveState("error");
-    }
-  }, [initial.id]);
+        const body: { draftHtml?: string; title?: string } = {};
+        if (draftRef.current !== syncedDraftRef.current)
+          body.draftHtml = draftRef.current;
+        if (titleRef.current !== syncedTitleRef.current)
+          body.title = titleRef.current;
 
-  useEffect(() => {
-    flushSaveRef.current = flushSave;
-  }, [flushSave]);
+        // Over-limit drafts can never succeed server-side — skip the upload
+        // instead of burning a request per debounce to learn the same. The
+        // timeline's "file too large" hint carries the reason.
+        if (body.draftHtml !== undefined) {
+          const bytes = draftByteSize(body.draftHtml);
+          setDraftBytes(bytes);
+          if (bytes > content.maxHtmlBytes) {
+            setSaveState("error");
+            return;
+          }
+        }
+
+        setSaveState("saving");
+        const detail = await api<ProjectDetail>(`/api/projects/${initial.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+        if (body.draftHtml !== undefined) syncedDraftRef.current = body.draftHtml;
+        if (body.title !== undefined) syncedTitleRef.current = body.title;
+        setUncommitted(detail.uncommitted);
+      }
+      setSaveState("saved");
+    })();
+
+    inFlightRef.current = run
+      .catch(() => setSaveState("error"))
+      .finally(() => {
+        inFlightRef.current = null;
+      });
+    return inFlightRef.current;
+  }, [initial.id]);
 
   const scheduleSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -273,12 +272,8 @@ const Editor = ({
     setBusy(true);
     setError(null);
     try {
+      // Joins any in-flight autosave; resolves only when saving has settled.
       await flushSave();
-      // An autosave may still be in flight (flushSave no-ops then) — wait
-      // for it to settle so the synced check sees the final state.
-      for (let i = 0; i < 50 && inFlightRef.current; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
       // The server snapshots ITS draft, not the editor's. Committing while
       // out of sync would silently publish stale content.
       if (
