@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# pa9es
 
-## Getting Started
+Host a single HTML page. Sign up, write or paste your HTML, name it, and it's live at `yourname.pa9es.com/pagename`. One file per page, no build step, no git repo. Publishing costs credits.
 
-First, run the development server:
+Design details live in [`docs/system-overview.md`](docs/system-overview.md).
+
+## Tech stack
+
+- [Next.js](https://nextjs.org) (App Router) on [Bun](https://bun.sh)
+- SQLite (`bun:sqlite`) with [Drizzle ORM](https://orm.drizzle.team)
+- [Better Auth](https://better-auth.com) for email/password auth
+- [Resend](https://resend.com) for transactional email
+- [Monaco](https://microsoft.github.io/monaco-editor/) editor, Tailwind CSS v4, Zod
+
+## Setup
+
+Requires [Bun](https://bun.sh) ≥ 1.3.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+
+cat > .env <<EOF
+BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+BETTER_AUTH_URL=http://localhost:3000
+EOF
+
+bun run db:migrate
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Without `RESEND_API_KEY`, verification emails are logged to the server console. Full env schema: `src/server/env.ts`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Use Bun for everything (`bun install`, `bun run ...`, `bunx`) — see [`AGENTS.md`](AGENTS.md)
+- `src/server/` is server-only; `src/lib/` is browser-safe; `src/schemas/` and `src/config/` are shared and must not read `process.env`
+- Absolute imports: `@/src/...`
+- API endpoints return the standard envelope from `src/server/create-response.ts`
+- Schema changes: `bun run db:generate`, then `bun run db:migrate`
+- Lint before pushing: `bun run lint`
