@@ -60,6 +60,9 @@ const AppPage = async ({ searchParams }: PageProps) => {
                   className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-2.5 py-3.5 transition-colors hover:bg-panel"
                 >
                   <span className="min-w-0 truncate">
+                    {project.iconEmoji && (
+                      <span className="mr-1.5">{project.iconEmoji}</span>
+                    )}
                     <span className="text-sm font-medium text-ink">
                       {project.title}
                     </span>

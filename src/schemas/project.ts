@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { content } from "@/src/config/constants";
+import { ICON_EMOJI_SET } from "@/src/config/icon-emojis";
 import { HOST_LABEL_REGEX } from "@/src/schemas/shared";
 
 const maxHtmlMb = content.maxHtmlBytes / 1024 / 1024;
@@ -27,6 +28,12 @@ const draftHtmlSchema = z
 
 const commitMessageSchema = z.string().trim().min(1, "Message required").max(200);
 
+// Membership in the curated set is the entire validation — no free-form
+// input ever reaches the icon SVG template.
+const iconEmojiSchema = z
+  .string()
+  .refine((value) => ICON_EMOJI_SET.has(value), "Pick an emoji from the icon set");
+
 const createProjectSchema = z.object({
   slug: slugSchema,
   // Defaults to the slug when omitted.
@@ -37,9 +44,14 @@ const updateProjectSchema = z
   .object({
     title: titleSchema.optional(),
     draftHtml: draftHtmlSchema.optional(),
+    // null clears the icon; absent leaves it untouched.
+    iconEmoji: iconEmojiSchema.nullable().optional(),
   })
   .refine(
-    (value) => value.title !== undefined || value.draftHtml !== undefined,
+    (value) =>
+      value.title !== undefined ||
+      value.draftHtml !== undefined ||
+      value.iconEmoji !== undefined,
     "Nothing to update",
   );
 
@@ -55,6 +67,7 @@ const ProjectSummarySchema = z.object({
   id: z.string(),
   slug: z.string(),
   title: z.string(),
+  iconEmoji: z.string().nullable(),
   isPublished: z.boolean(),
   publishedAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
@@ -65,6 +78,7 @@ const ProjectDetailSchema = z.object({
   id: z.string(),
   slug: z.string(),
   title: z.string(),
+  iconEmoji: z.string().nullable(),
   draftHtml: z.string(),
   liveCommitId: z.string().nullable(),
   // True when the draft differs from the latest commit (or when there are no
@@ -95,6 +109,7 @@ export {
   titleSchema,
   draftHtmlSchema,
   commitMessageSchema,
+  iconEmojiSchema,
   createProjectSchema,
   updateProjectSchema,
   createCommitSchema,

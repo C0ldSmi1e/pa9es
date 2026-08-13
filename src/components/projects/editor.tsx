@@ -9,6 +9,7 @@ import type {
   ProjectDetail,
 } from "@/src/schemas/project";
 import { CodeEditor } from "@/src/components/projects/code-editor";
+import { IconPicker } from "@/src/components/projects/icon-picker";
 import { PreviewPane } from "@/src/components/projects/preview-pane";
 import { Timeline } from "@/src/components/projects/timeline";
 
@@ -41,6 +42,7 @@ const Editor = ({
   liveUrl: string;
 }) => {
   const [title, setTitle] = useState(initial.title);
+  const [iconEmoji, setIconEmoji] = useState(initial.iconEmoji);
   const [commits, setCommits] = useState(initialCommits);
   const [liveCommitId, setLiveCommitId] = useState(initial.liveCommitId);
   const [uncommitted, setUncommitted] = useState(initial.uncommitted);
@@ -183,6 +185,31 @@ const Editor = ({
     setTitle(value);
     titleRef.current = value;
     scheduleSave();
+  };
+
+  // Optimistic; separate from the draft autosave (a null must reach the
+  // server, and the debounce would let icon and draft changes clobber each
+  // other's PATCH bodies). The sequence ref drops out-of-order responses —
+  // the Random button can fire re-rolls faster than PATCHes complete.
+  const iconRequestRef = useRef(0);
+  const doSetIcon = async (next: string | null) => {
+    const requestId = ++iconRequestRef.current;
+    const previous = iconEmoji;
+    setIconEmoji(next);
+    setError(null);
+    try {
+      const detail = await api<ProjectDetail>(`/api/projects/${initial.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ iconEmoji: next }),
+      });
+      if (requestId === iconRequestRef.current) setIconEmoji(detail.iconEmoji);
+    } catch (requestError) {
+      if (requestId !== iconRequestRef.current) return;
+      setIconEmoji(previous);
+      setError(
+        requestError instanceof Error ? requestError.message : "Icon update failed",
+      );
+    }
   };
 
   // ── selection drives the preview ──
@@ -350,6 +377,7 @@ const Editor = ({
         >
           ← Pages
         </Link>
+        <IconPicker value={iconEmoji} onSelect={(next) => void doSetIcon(next)} />
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}

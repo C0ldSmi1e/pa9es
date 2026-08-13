@@ -161,6 +161,10 @@ const project = sqliteTable(
     // one row. Rewritten on every make-live; survives unpublish.
     publishedHtml: text("published_html"),
     publishedAt: integer("published_at", { mode: "timestamp_ms" }),
+    // Site icon: one emoji from the curated set (src/config/icon-emojis.ts),
+    // served as an SVG favicon at /<slug>/icon.svg. Project metadata like
+    // title — not versioned in commits, takes effect immediately.
+    iconEmoji: text("icon_emoji"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(nowMs)
       .notNull(),
