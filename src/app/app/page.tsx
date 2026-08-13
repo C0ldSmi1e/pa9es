@@ -4,7 +4,7 @@ import { listProjects } from "@/src/server/actions/projects";
 import { CreateProjectForm } from "@/src/components/projects/create-project-form";
 import { DeleteProjectButton } from "@/src/components/projects/delete-project-button";
 import { SignOutButton } from "@/src/components/auth/sign-out-button";
-import { app } from "@/src/server/env";
+import { app, authConfig } from "@/src/server/env";
 import { getSession } from "@/src/server/session";
 
 type PageProps = { searchParams: Promise<{ error?: string }> };
@@ -21,6 +21,8 @@ const AppPage = async ({ searchParams }: PageProps) => {
 
   const { data: projects } = await listProjects({ userId: session.user.id });
   const urlPrefix = `${session.user.username ?? "you"}.${app.rootDomain}/`;
+  // Live links use the canonical protocol, same as the editor's status chip.
+  const protocol = new URL(authConfig.url).protocol;
 
   return (
     <main className="min-h-screen bg-ground font-sans">
@@ -53,12 +55,18 @@ const AppPage = async ({ searchParams }: PageProps) => {
           </p>
         ) : (
           <ul className="divide-y divide-edge border-y border-edge">
-            {projects.map((project) => (
-              <li key={project.id} className="flex items-center gap-2">
-                <Link
-                  href={`/app/projects/${project.id}`}
-                  className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-2.5 py-3.5 transition-colors hover:bg-panel"
-                >
+            {projects.map((project) => {
+              // Row click opens the public page; drafts (and accounts that
+              // somehow lack a username) get an inert row. Editing moved
+              // behind the explicit Edit button.
+              const liveHref =
+                project.isPublished && session.user.username
+                  ? `${protocol}//${session.user.username}.${app.rootDomain}/${project.slug}`
+                  : null;
+              const rowClass =
+                "flex min-w-0 flex-1 items-baseline justify-between gap-3 px-2.5 py-3.5";
+              const row = (
+                <>
                   <span className="min-w-0 truncate">
                     {project.iconEmoji && (
                       <span className="mr-1.5">{project.iconEmoji}</span>
@@ -80,12 +88,34 @@ const AppPage = async ({ searchParams }: PageProps) => {
                         project.isPublished ? "bg-live" : "bg-faint"
                       }`}
                     />
-                    {project.isPublished ? "live" : "draft"}
+                    {project.isPublished ? "live ↗" : "draft"}
                   </span>
-                </Link>
-                <DeleteProjectButton projectId={project.id} />
-              </li>
-            ))}
+                </>
+              );
+              return (
+                <li key={project.id} className="flex items-center gap-2">
+                  {liveHref ? (
+                    <a
+                      href={liveHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`${rowClass} transition-colors hover:bg-panel`}
+                    >
+                      {row}
+                    </a>
+                  ) : (
+                    <span className={rowClass}>{row}</span>
+                  )}
+                  <Link
+                    href={`/app/projects/${project.id}`}
+                    className="shrink-0 rounded-md border border-edge px-3 py-1.5 text-xs text-dim transition-colors hover:border-accent hover:text-accent"
+                  >
+                    Edit
+                  </Link>
+                  <DeleteProjectButton projectId={project.id} />
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
