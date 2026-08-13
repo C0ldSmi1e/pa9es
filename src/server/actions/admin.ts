@@ -104,6 +104,7 @@ const adminListProjectsForUser = async ({
       id: project.id,
       slug: project.slug,
       title: project.title,
+      iconEmoji: project.iconEmoji,
       liveCommitId: project.liveCommitId,
       publishedAt: project.publishedAt,
       createdAt: project.createdAt,

@@ -52,6 +52,14 @@ In MVP, I need:
 - in a project, users can edit the html file
 - a project should be unpublished by default, and can be publish and unpublished
 - version control of a project (git-like: commit ≠ publish)
+- site icon: one emoji per project, picked from the curated set in
+  `src/config/icon-emojis.ts` (shared by the editor's picker and the API
+  validator — no free-form input reaches the SVG template). Stored on the
+  project (`icon_emoji`) as metadata like the title: not versioned in
+  commits, takes effect immediately. Served at `/<slug>/icon.svg` as an
+  SVG-wrapped emoji, cached hard because the href carries `?v=<emoji>`.
+  The serving path injects a `<link rel="icon">` into published HTML only
+  when the page declares no icon of its own — author markup always wins.
 
 ## Version model
 

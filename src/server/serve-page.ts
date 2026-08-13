@@ -41,6 +41,50 @@ const publishedPage = (html: string): Response =>
     },
   });
 
+// Emoji site icon as an SVG favicon, rendered by the viewer's platform
+// emoji font. Only curated-set emoji reach here (membership validated at
+// the API layer), so the interpolation cannot produce markup.
+const iconPage = (emoji: string): Response =>
+  new Response(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`,
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        // The injected href carries ?v=<emoji>, so the URL changes whenever
+        // the icon does — safe to cache hard.
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+
+// Any icon-ish rel value (icon, shortcut icon, apple-touch-icon) counts as
+// the author declaring their own favicon.
+const ICON_LINK_REGEX = /<link\b[^>]*\brel\s*=\s*["']?[^"'>]*\bicon\b/i;
+
+// Injects a favicon link into published HTML when the page declares none —
+// the author's own markup always wins. Inserted after <head> (falling back
+// to <html>, then the doctype) so nothing ever precedes <!doctype>, which
+// would knock the page into quirks mode.
+const withIconLink = (
+  html: string,
+  { slug, emoji }: { slug: string; emoji: string },
+): string => {
+  if (ICON_LINK_REGEX.test(html)) {
+    return html;
+  }
+  const tag = `<link rel="icon" type="image/svg+xml" href="/${slug}/icon.svg?v=${encodeURIComponent(emoji)}">`;
+  for (const opener of [/<head\b[^>]*>/i, /<html\b[^>]*>/i, /<!doctype\b[^>]*>/i]) {
+    const match = opener.exec(html);
+    if (match) {
+      const at = match.index + match[0].length;
+      return html.slice(0, at) + tag + html.slice(at);
+    }
+  }
+  return tag + html;
+};
+
 // Titles are free-form user text; usernames/slugs are validated hostname
 // labels but get escaped anyway.
 const escapeHtml = (value: string): string =>
@@ -127,4 +171,4 @@ ${rows}
   });
 };
 
-export { notFoundPage, publishedPage, indexPage };
+export { notFoundPage, publishedPage, indexPage, iconPage, withIconLink };

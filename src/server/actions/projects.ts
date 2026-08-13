@@ -20,6 +20,7 @@ const toSummary = (
     | "id"
     | "slug"
     | "title"
+    | "iconEmoji"
     | "liveCommitId"
     | "publishedAt"
     | "createdAt"
@@ -29,6 +30,7 @@ const toSummary = (
   id: row.id,
   slug: row.slug,
   title: row.title,
+  iconEmoji: row.iconEmoji,
   isPublished: row.liveCommitId !== null,
   publishedAt: row.publishedAt?.toISOString() ?? null,
   createdAt: row.createdAt.toISOString(),
@@ -53,6 +55,7 @@ const toDetail = async (row: Project): Promise<ProjectDetail> => {
     id: row.id,
     slug: row.slug,
     title: row.title,
+    iconEmoji: row.iconEmoji,
     draftHtml: row.draftHtml,
     liveCommitId: row.liveCommitId,
     uncommitted: latest === null ? row.draftHtml !== "" : row.draftHtml !== latest,
@@ -82,6 +85,7 @@ const listProjects = async ({
       id: project.id,
       slug: project.slug,
       title: project.title,
+      iconEmoji: project.iconEmoji,
       liveCommitId: project.liveCommitId,
       publishedAt: project.publishedAt,
       createdAt: project.createdAt,
@@ -165,15 +169,23 @@ const updateProject = async ({
   projectId,
   title,
   draftHtml,
+  iconEmoji,
 }: {
   userId: string;
   projectId: string;
   title?: string;
   draftHtml?: string;
+  // null clears the icon; undefined leaves it untouched.
+  iconEmoji?: string | null;
 }): Promise<ProjectDetail> => {
-  const changes: Partial<{ title: string; draftHtml: string }> = {};
+  const changes: Partial<{
+    title: string;
+    draftHtml: string;
+    iconEmoji: string | null;
+  }> = {};
   if (title !== undefined) changes.title = title;
   if (draftHtml !== undefined) changes.draftHtml = draftHtml;
+  if (iconEmoji !== undefined) changes.iconEmoji = iconEmoji;
   if (Object.keys(changes).length === 0) {
     throw new BadRequestError("Nothing to update");
   }
@@ -206,33 +218,58 @@ const deleteProject = async ({
   return row;
 };
 
+// Visibility rule shared by the public single-page serving queries: only
+// live pages, banned owners excluded.
+const publishedWhere = (username: string, slug: string) =>
+  and(
+    eq(user.username, username),
+    eq(project.slug, slug),
+    isNotNull(project.liveCommitId),
+    sql`${user.banned} is not true`,
+  );
+
 // Public serving path: resolves <username>.pa9es.com/<slug> to the live
 // commit's html (denormalized into publishedHtml). Banned users' pages stay
-// off the air.
+// off the air. iconEmoji rides along so the route can inject a favicon link
+// without a second query.
 const getPublishedPage = async ({
   username,
   slug,
 }: {
   username: string;
   slug: string;
-}): Promise<{ html: string }> => {
+}): Promise<{ html: string; iconEmoji: string | null }> => {
   const [row] = await db
-    .select({ html: project.publishedHtml })
+    .select({ html: project.publishedHtml, iconEmoji: project.iconEmoji })
     .from(project)
     .innerJoin(user, eq(project.userId, user.id))
-    .where(
-      and(
-        eq(user.username, username),
-        eq(project.slug, slug),
-        isNotNull(project.liveCommitId),
-        sql`${user.banned} is not true`,
-      ),
-    )
+    .where(publishedWhere(username, slug))
     .limit(1);
   if (!row) {
     throw new NotFoundError("Page not found");
   }
-  return { html: row.html ?? "" };
+  return { html: row.html ?? "", iconEmoji: row.iconEmoji };
+};
+
+// Icon for a published page (<username>.pa9es.com/<slug>/icon.svg). A page
+// without an icon 404s exactly like a page that doesn't exist.
+const getPublishedIcon = async ({
+  username,
+  slug,
+}: {
+  username: string;
+  slug: string;
+}): Promise<{ emoji: string }> => {
+  const [row] = await db
+    .select({ iconEmoji: project.iconEmoji })
+    .from(project)
+    .innerJoin(user, eq(project.userId, user.id))
+    .where(publishedWhere(username, slug))
+    .limit(1);
+  if (!row?.iconEmoji) {
+    throw new NotFoundError("Icon not found");
+  }
+  return { emoji: row.iconEmoji };
 };
 
 // Public index for <username>.pa9es.com/ — every published page the user
@@ -265,6 +302,7 @@ export {
   updateProject,
   deleteProject,
   getPublishedPage,
+  getPublishedIcon,
   listPublishedPages,
   findOwnedProject,
   latestCommitHtml,
