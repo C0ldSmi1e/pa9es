@@ -5,6 +5,7 @@ import {
   sqliteTable,
   text,
   uniqueIndex,
+  type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
 // Epoch-ms default evaluated by SQLite itself, so rows created outside the
@@ -24,39 +25,49 @@ const nowMs = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 // One deliberate deviation: role gets a DB default of "user" (the CLI leaves
 // it defaultless) so rows created outside Better Auth still get a sane role.
 
-const user = sqliteTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" })
-    .default(false)
-    .notNull(),
-  image: text("image"),
-  // username plugin. The username doubles as the user's subdomain
-  // (<username>.pa9es.com), so signup validates it against hostname rules and
-  // the reserved-name list, and lowercases it, before it ever reaches the DB.
-  // Nullable because the plugin permits accounts without one; our signup flow
-  // always requires it.
-  username: text("username").unique(),
-  displayUsername: text("display_username"),
-  // admin plugin. Nullable to accept whatever the plugin writes (e.g. unban
-  // clears ban fields); a null role means a regular user.
-  role: text("role").default("user"),
-  banned: integer("banned", { mode: "boolean" }).default(false),
-  banReason: text("ban_reason"),
-  banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
-  // Denormalized SUM(credit_ledger.delta), in internal units (see
-  // src/config/constants.ts `credits.scale`). Updated in the same
-  // transaction as every ledger insert — reads never sum the ledger.
-  creditBalance: integer("credit_balance").default(0).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .default(nowMs)
-    .notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .default(nowMs)
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+const user = sqliteTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: integer("email_verified", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    image: text("image"),
+    // username plugin. The username doubles as the user's subdomain
+    // (<username>.pa9es.com), so signup validates it against hostname rules and
+    // the reserved-name list, and lowercases it, before it ever reaches the DB.
+    // Nullable because the plugin permits accounts without one; our signup flow
+    // always requires it.
+    username: text("username").unique(),
+    displayUsername: text("display_username"),
+    // admin plugin. Nullable to accept whatever the plugin writes (e.g. unban
+    // clears ban fields); a null role means a regular user.
+    role: text("role").default("user"),
+    banned: integer("banned", { mode: "boolean" }).default(false),
+    banReason: text("ban_reason"),
+    banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+    // Denormalized SUM(credit_ledger.delta), in internal units (see
+    // src/config/constants.ts `credits.scale`). Updated in the same
+    // transaction as every ledger insert — reads never sum the ledger.
+    creditBalance: integer("credit_balance").default(0).notNull(),
+    // Referral attribution: the referrer's user id (ids survive username
+    // changes), stamped once at signup by the auth create.before hook and
+    // never updated. set null so deleting a referrer keeps their referees.
+    referredBy: text("referred_by").references((): AnySQLiteColumn => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(nowMs)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(nowMs)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("user_referred_by_idx").on(table.referredBy)],
+);
 
 const session = sqliteTable(
   "session",

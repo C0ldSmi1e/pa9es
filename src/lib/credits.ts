@@ -20,7 +20,8 @@ const KIND_LABELS: Record<string, string> = {
   signup_bonus: "signup bonus",
   publish_charge: "publish",
   admin_adjustment: "adjustment",
-  referral_bonus: "referral",
+  referral_bonus: "referral bonus",
+  referral_reward: "referral reward",
   purchase: "purchase",
   ai_usage: "ai",
 };

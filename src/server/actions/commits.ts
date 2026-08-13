@@ -11,6 +11,7 @@ import {
   latestCommitHtml,
   toDetail,
 } from "@/src/server/actions/projects";
+import { maybeRewardReferrer } from "@/src/server/actions/referrals";
 import { db } from "@/src/server/db";
 import { commit, project, type Commit } from "@/src/server/db/schema";
 import { BadRequestError, NotFoundError } from "@/src/server/errors";
@@ -129,6 +130,9 @@ const makeLive = async (args: {
         tx,
       );
     }
+    // A publish is the referral qualifying event; idempotent per referee.
+    // After the spend, so an insufficient-balance abort never rewards.
+    maybeRewardReferrer(args.userId, tx);
     return tx
       .update(project)
       .set({

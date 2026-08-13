@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { credits } from "@/src/config/constants";
+import { credits, referrals } from "@/src/config/constants";
 import {
   formatCredits,
   formatCreditAmount,
   ledgerKindLabel,
 } from "@/src/lib/credits";
 import { ChangePasswordForm } from "@/src/components/auth/change-password-form";
+import { ReferralLink } from "@/src/components/referral-link";
 import { getBalance, listLedger } from "@/src/server/actions/credits";
+import { referralStats } from "@/src/server/actions/referrals";
+import { authConfig } from "@/src/server/env";
 import { getSession } from "@/src/server/session";
 
 // Account settings. Password only for now; profile/email updates land here
@@ -24,6 +27,13 @@ const SettingsPage = async () => {
     offset: 0,
     limit: 10,
   });
+  const stats = await referralStats({ userId: session.user.id });
+
+  // ?ref= on the canonical origin; ReferralCapture picks it up on landing.
+  const referralUrl = new URL(authConfig.url);
+  if (session.user.username) {
+    referralUrl.searchParams.set("ref", session.user.username);
+  }
 
   return (
     <main className="min-h-screen bg-ground font-sans">
@@ -101,6 +111,29 @@ const SettingsPage = async () => {
             free.
           </p>
         </section>
+
+        {session.user.username && (
+          <section className="rounded-xl border border-edge bg-panel p-5">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-dim">
+                Referrals
+              </h2>
+              <span className="font-mono text-xs text-dim">
+                {stats.signups} signed up · {stats.rewarded} published · earned{" "}
+                {formatCredits(stats.earned)}
+              </span>
+            </div>
+            <div className="mt-3">
+              <ReferralLink url={referralUrl.toString()} />
+            </div>
+            <p className="mt-4 text-xs text-faint">
+              Friends who sign up with your link get{" "}
+              {formatCreditAmount(referrals.refereeBonus)} extra. You earn{" "}
+              {formatCreditAmount(referrals.referrerBonus)} when they publish their
+              first page.
+            </p>
+          </section>
+        )}
 
         <section className="rounded-xl border border-edge bg-panel p-5">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-dim">

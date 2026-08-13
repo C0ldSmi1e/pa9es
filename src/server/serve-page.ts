@@ -128,6 +128,11 @@ const indexPage = ({
     })
     .join("\n");
 
+  // The footer home link carries the page owner's referral attribution —
+  // every public index doubles as an acquisition channel for its author.
+  const homeRefUrl = new URL(homeUrl);
+  homeRefUrl.searchParams.set("ref", username);
+
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -164,7 +169,7 @@ ${BRAND_ICON_LINK}
   <ul>
 ${rows}
   </ul>
-  <footer>hosted on <a href="${escapeHtml(homeUrl)}">pa<b>9</b>es</a></footer>
+  <footer>hosted on <a href="${escapeHtml(homeRefUrl.toString())}">pa<b>9</b>es</a></footer>
 </main>
 </body>
 </html>

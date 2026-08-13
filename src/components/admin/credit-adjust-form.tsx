@@ -51,7 +51,7 @@ const CreditAdjustForm = ({ userId }: { userId: string }) => {
         <input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          placeholder="+5 or -2.5"
+          placeholder="+500 or -100"
           aria-label="Credit amount"
           inputMode="decimal"
           className="w-24 rounded-md border border-edge bg-panel-2 px-2 py-1.5 font-mono text-xs text-ink outline-none transition-colors placeholder:text-faint focus:border-accent"

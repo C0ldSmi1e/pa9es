@@ -98,6 +98,14 @@ const AdminUserPage = async ({ params }: PageProps) => {
                 {target.createdAt.slice(0, 10)}
               </dd>
             </div>
+            {target.referredByUsername && (
+              <div className="flex items-baseline justify-between text-sm">
+                <dt className="text-dim">referred by</dt>
+                <dd className="font-mono text-xs text-ink">
+                  {target.referredByUsername}
+                </dd>
+              </div>
+            )}
           </dl>
         </section>
 

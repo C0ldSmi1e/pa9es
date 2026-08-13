@@ -1,4 +1,5 @@
 import { count, desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { pagination as paginationConfig } from "@/src/config/constants";
 import type { LedgerEntry } from "@/src/schemas/credits";
 import type { CommitSummary, ProjectSummary } from "@/src/schemas/project";
@@ -26,6 +27,7 @@ type AdminUserDetail = {
   role: string | null;
   banned: boolean;
   creditBalance: number;
+  referredByUsername: string | null;
   createdAt: string;
 };
 
@@ -69,6 +71,8 @@ const adminGetUser = async ({
   userId: string;
 }): Promise<AdminUserDetail> => {
   assertAdmin(actorRole);
+  // Self-join to surface who referred this user, by username.
+  const referrer = alias(user, "referrer");
   const [row] = await db
     .select({
       id: user.id,
@@ -78,9 +82,11 @@ const adminGetUser = async ({
       role: user.role,
       banned: user.banned,
       creditBalance: user.creditBalance,
+      referredByUsername: referrer.username,
       createdAt: user.createdAt,
     })
     .from(user)
+    .leftJoin(referrer, eq(user.referredBy, referrer.id))
     .where(eq(user.id, userId))
     .limit(1);
   if (!row) {

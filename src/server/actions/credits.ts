@@ -173,3 +173,4 @@ const listLedger = async ({
 };
 
 export { grantCredits, spendCredits, getBalance, listLedger };
+export type { DbClient };

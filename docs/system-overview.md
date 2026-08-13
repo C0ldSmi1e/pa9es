@@ -77,13 +77,36 @@ In MVP, I need:
   rollbacks are free by idempotency. Insufficient balance →
   `PaymentRequiredError` → 402; no refunds on unpublish/delete.
 - Kinds are an open set (`signup_bonus`, `publish_charge`,
-  `admin_adjustment`, and future `referral_bonus` / `purchase` / `ai_usage`).
-  Payment rails and new charge types are just new entry writers — no schema
-  change.
+  `admin_adjustment`, `referral_bonus`, `referral_reward`, and future
+  `purchase` / `ai_usage`). Payment rails and new charge types are just new
+  entry writers — no schema change.
 - Surfaces: balance chip on `/app`, balance + history + pricing note in
   `/app/settings`, admin grant/deduct (signed `admin_adjustment`, optional
   note) on `/admin/users/[userId]` via `POST /api/admin/credits`; own balance
   and history at `GET /api/credits` and `GET /api/credits/ledger`.
+
+## Referrals
+
+- Attribution: any `?ref=<username>` landing sets a 30-day `pa9es_ref` cookie
+  (`ReferralCapture` in the root layout; last-touch wins). At signup, auth's
+  `user.create.before` hook resolves the cookie to a user id and stamps
+  `user.referred_by` (id, not username — survives future username changes;
+  FK set-null). The field is `input: false`, so the signup request body can
+  never set it directly; bad or unknown refs never block signup. Self-referral
+  is structurally impossible.
+- Rewards (amounts in `referrals` config, both keyed on the referee's id):
+  referee gets `refereeBonus` (`referral_bonus`) at signup on top of the
+  signup bonus — safe because unverified accounts can't sign in and referee
+  credits can't be aggregated. Referrer gets `referrerBonus`
+  (`referral_reward`) when the referee first publishes: `makeLive` calls
+  `maybeRewardReferrer` in its transaction, and the ledger key makes it
+  once-per-referee-ever; `maxRewards` caps a referrer's lifetime rewards.
+  Clawbacks are compensating entries + the ban button.
+- The growth loop: the "hosted on pa9es" footer on every subdomain index
+  carries `?ref=<owner>` — published authors are attributed acquisition
+  channels. Author page HTML stays untouched.
+- Surfaces: referral link + stats (signups / published / earned) in
+  `/app/settings`; "referred by" row on `/admin/users/[userId]`.
 
 ## Email
 
