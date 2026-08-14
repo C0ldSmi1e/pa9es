@@ -80,10 +80,31 @@ const Home = async () => {
 
         <TypewriterDemo />
 
-        <p className="mt-12 text-center text-sm text-faint">
-          Landing pages · demos · résumés · the page your{" "}
-          <span className="font-medium text-dim">AI just wrote you</span> · © pa9es
-        </p>
+        <footer className="mt-12 text-center text-sm text-faint">
+          <p>
+            Landing pages · demos · résumés · the page your{" "}
+            <span className="font-medium text-dim">AI just wrote you</span> · © pa9es
+          </p>
+          <p className="mt-2">
+            <a
+              href="https://github.com/C0ldSmi1e/pa9es"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-ink"
+            >
+              github
+            </a>{" "}
+            · made by{" "}
+            <a
+              href="https://www.C0ldSmi1e.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-dim transition-colors hover:text-ink"
+            >
+              C0ldSmi1e
+            </a>
+          </p>
+        </footer>
       </div>
     </main>
   );
