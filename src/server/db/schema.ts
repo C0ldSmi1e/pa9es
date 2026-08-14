@@ -13,10 +13,10 @@ import {
 // `@better-auth/cli generate` emits.
 const nowMs = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 
-// ─── Better Auth tables ──────────────────────────────────────────────────────
+// Better Auth tables.
 //
 // Mirrors the output of `bunx @better-auth/cli generate --config
-// src/config/auth.ts` for an email/password setup with the username and admin
+// src/server/auth.ts` for an email/password setup with the username and admin
 // plugins (verified against better-auth 1.6.26). The property keys are the
 // field names Better Auth reads through its drizzle adapter — those must not
 // change. Better Auth supplies ids and timestamps for its own tables at
@@ -146,7 +146,7 @@ const verification = sqliteTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-// ─── Domain tables ───────────────────────────────────────────────────────────
+// Domain tables.
 
 // One project = one hosted HTML page, live at <username>.pa9es.com/<slug>
 // while a commit is live. The subdomain root ("/") never resolves to a

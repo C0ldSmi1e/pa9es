@@ -8,8 +8,6 @@
 
 // Business-rule violation or semantic input issue. The request is well-formed
 // but cannot be satisfied given the current state or invariants.
-// Examples: "Cannot demote the last admin", "endTime must be after startTime",
-// "Cannot connect with yourself", "Current password is incorrect".
 class BadRequestError extends Error {
   constructor(message: string) {
     super(message);
@@ -38,8 +36,6 @@ class AuthenticationError extends Error {
 
 // Caller is authenticated but lacks permission for the requested action. The
 // client should NOT retry with the same credentials.
-// Examples: a non-admin trying to mutate event settings, a non-attendee
-// hitting an attendee-only endpoint.
 class AuthorizationError extends Error {
   constructor(message: string) {
     super(message);
@@ -49,7 +45,6 @@ class AuthorizationError extends Error {
 
 // The referenced resource doesn't exist (or isn't visible to this caller).
 // Lookup by id / slug returned nothing.
-// Examples: "Attendee not found", "Invitation not found".
 class NotFoundError extends Error {
   constructor(message: string) {
     super(message);
@@ -59,8 +54,6 @@ class NotFoundError extends Error {
 
 // State-based conflict. A unique constraint would be violated, or the entity
 // is already in the target state.
-// Examples: "Slug already exists", "Person is already a member of this event",
-// "Invitation already accepted", "Already onboarded".
 class ConflictError extends Error {
   constructor(message: string) {
     super(message);
@@ -79,7 +72,6 @@ class RateLimitError extends Error {
 
 // An upstream service the action depended on (email provider, third-party
 // API) failed. The action's own state is fine; the caller may retry.
-// Examples: "Failed to send invite email".
 class UpstreamError extends Error {
   constructor(message: string) {
     super(message);
@@ -87,8 +79,8 @@ class UpstreamError extends Error {
   }
 }
 
-// Walks the `cause` chain for a SQLite extended result code: better-sqlite3
-// throws a SqliteError carrying the code on `error.code`, and drizzle wraps
+// Walks the `cause` chain for a SQLite extended result code: the driver
+// throws an error carrying the code on `error.code`, and drizzle wraps
 // driver errors in a DrizzleQueryError whose own `code` is undefined — so the
 // code only ever appears on the wrapped original.
 const hasSqliteCode = (error: unknown, codes: readonly string[]): boolean => {
