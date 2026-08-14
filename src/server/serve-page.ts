@@ -179,7 +179,6 @@ ${rows}
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      // Publishing or unpublishing a page must show up here immediately.
       "Cache-Control": "no-cache",
       "X-Content-Type-Options": "nosniff",
     },

@@ -125,7 +125,7 @@ const Editor = ({
     updatePrefs(next);
   };
 
-  // ── autosave: debounced PATCH; latest wins; explicit error state ──
+  // Autosave: debounced PATCH; latest wins; explicit error state.
   // Returns a promise that settles only when saving is done: refs synced, or
   // blocked (over the size limit / request failed). Concurrent callers join
   // the same run instead of skipping.
@@ -237,7 +237,7 @@ const Editor = ({
     }
   };
 
-  // ── selection drives the preview ──
+  // Selection drives the preview.
   const select = useCallback(
     async (next: string) => {
       setSelection(next);
@@ -267,7 +267,7 @@ const Editor = ({
     [commits, liveCommitId, initial.id],
   );
 
-  // ── timeline actions ──
+  // Timeline actions.
   const doCommit = async (message: string): Promise<boolean> => {
     setBusy(true);
     setError(null);
@@ -370,7 +370,7 @@ const Editor = ({
     }
   };
 
-  // ── status chip ──
+  // Status chip.
   const live = commits.find((c) => c.id === liveCommitId) ?? null;
   const latest = commits[0] ?? null;
   const statusText = !live
@@ -382,7 +382,7 @@ const Editor = ({
       : `Live v${live.v}`;
   const behind = Boolean(live && latest && live.id !== latest.id);
 
-  // ── draggable divider between editor and preview ──
+  // Draggable divider between editor and preview.
   const onDividerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const divider = e.currentTarget;
