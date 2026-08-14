@@ -11,6 +11,9 @@ import {
   UpstreamError,
 } from "@/src/server/errors";
 
+/**
+ * Creates a success response with the provided data
+ */
 const createSuccessResponse = <T>({
   data,
   pagination,
@@ -25,6 +28,9 @@ const createSuccessResponse = <T>({
   };
 };
 
+/**
+ * Creates an error response with the provided error code and message
+ */
 const createErrorResponse = <T>({
   message,
 }: {
