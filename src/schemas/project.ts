@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { content } from "@/src/config/constants";
+import { content, pagination } from "@/src/config/constants";
 import { ICON_EMOJI_SET } from "@/src/config/icon-emojis";
 import { HOST_LABEL_REGEX } from "@/src/schemas/shared";
 
@@ -63,6 +63,16 @@ const commitRefSchema = z.object({
   commitId: z.string().min(1),
 });
 
+// Full ordered id list — position = array index. Capped at the same hard
+// limit as unpaginated GETs, since that's the most a client can ever hold.
+const reorderProjectsSchema = z.object({
+  orderedIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(pagination.maxLimit)
+    .refine((ids) => new Set(ids).size === ids.length, "Duplicate project ids"),
+});
+
 const ProjectSummarySchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -114,6 +124,7 @@ export {
   updateProjectSchema,
   createCommitSchema,
   commitRefSchema,
+  reorderProjectsSchema,
   ProjectSummarySchema,
   ProjectDetailSchema,
   CommitSummarySchema,

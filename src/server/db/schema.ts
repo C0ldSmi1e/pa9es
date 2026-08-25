@@ -180,6 +180,12 @@ const project = sqliteTable(
     // served as an SVG favicon at /<slug>/icon.svg. Project metadata like
     // title — not versioned in commits, takes effect immediately.
     iconEmoji: text("icon_emoji"),
+    // Manual position in the user's page list, ascending; one order drives
+    // both the dashboard and the public subdomain index. No backfill: rows
+    // keep the default until the first reorder writes real positions, and
+    // reads tie-break on recency so untouched accounts keep the old order.
+    // New pages take min(sort_order) - 1, so they land on top.
+    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(nowMs)
       .notNull(),

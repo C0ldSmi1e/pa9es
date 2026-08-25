@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { pagination as paginationConfig } from "@/src/config/constants";
 import type { ProjectDetail, ProjectSummary } from "@/src/schemas/project";
 import type { ListResult, Pagination } from "@/src/schemas/standard-response";
@@ -93,7 +93,9 @@ const listProjects = async ({
     })
     .from(project)
     .where(eq(project.userId, userId))
-    .orderBy(desc(project.updatedAt))
+    // Manual order first; the recency tie-break preserves the pre-sortOrder
+    // ordering for accounts that never reordered (all rows at the default).
+    .orderBy(asc(project.sortOrder), desc(project.updatedAt))
     .limit(effectiveLimit)
     .offset(effectiveOffset);
 
@@ -153,7 +155,13 @@ const createProject = async ({
   try {
     const [row] = await db
       .insert(project)
-      .values({ userId, slug, title: title ?? slug })
+      .values({
+        userId,
+        slug,
+        title: title ?? slug,
+        // New pages land on top — same subquery pattern as commit.v.
+        sortOrder: sql`(select coalesce(min(sort_order), 0) - 1 from ${project} where ${project.userId} = ${userId})`,
+      })
       .returning();
     return toDetail(row);
   } catch (error) {
@@ -281,22 +289,55 @@ const listPublishedPages = async ({
 }: {
   username: string;
 }): Promise<Array<{ slug: string; title: string; iconEmoji: string | null }>> => {
-  return db
-    .select({
-      slug: project.slug,
-      title: project.title,
-      iconEmoji: project.iconEmoji,
-    })
-    .from(project)
-    .innerJoin(user, eq(project.userId, user.id))
-    .where(
-      and(
-        eq(user.username, username),
-        isNotNull(project.liveCommitId),
-        sql`${user.banned} is not true`,
-      ),
-    )
-    .orderBy(desc(project.publishedAt));
+  return (
+    db
+      .select({
+        slug: project.slug,
+        title: project.title,
+        iconEmoji: project.iconEmoji,
+      })
+      .from(project)
+      .innerJoin(user, eq(project.userId, user.id))
+      .where(
+        and(
+          eq(user.username, username),
+          isNotNull(project.liveCommitId),
+          sql`${user.banned} is not true`,
+        ),
+      )
+      // The owner's manual order, same as the dashboard; the tie-break keeps
+      // the old newest-publish-first order for never-reordered accounts.
+      .orderBy(asc(project.sortOrder), desc(project.publishedAt))
+  );
+};
+
+// Persists the user's manual page order: position = index in orderedIds.
+// Lenient on drift rather than strict set-equality: an id that no longer
+// exists (deleted in another tab) is skipped by the ownership WHERE, and a
+// project not mentioned (created mid-drag) keeps its slot — the next reorder
+// converges everything. Sync execution inside the transaction, like the
+// ledger writes (see src/server/actions/credits.ts).
+const reorderProjects = async ({
+  userId,
+  orderedIds,
+}: {
+  userId: string;
+  orderedIds: string[];
+}): Promise<ListResult<ProjectSummary>> => {
+  db.transaction((tx) => {
+    orderedIds.forEach((projectId, index) => {
+      tx.update(project)
+        .set({
+          sortOrder: index,
+          // A reorder is not an edit: pin updatedAt to itself so $onUpdate
+          // doesn't bump it (the admin recent-activity sort stays honest).
+          updatedAt: sql`${project.updatedAt}`,
+        })
+        .where(and(eq(project.id, projectId), eq(project.userId, userId)))
+        .run();
+    });
+  });
+  return listProjects({ userId });
 };
 
 export {
@@ -305,6 +346,7 @@ export {
   createProject,
   updateProject,
   deleteProject,
+  reorderProjects,
   getPublishedPage,
   getPublishedIcon,
   listPublishedPages,
