@@ -29,7 +29,7 @@ Everything on one domain for now.
 - Usernames are hostnames: lowercase letters, numbers, hyphens, max 63 chars. Check at signup.
 - Can't do `page.user.pa9es.com` — wildcards only match one label. Path it is.
 - Reserve before launch: `www`, `app`, `api`, `admin`, `mail`, `cdn`, `static`, `status`, `docs`, `help`, `blog`, plus brand names like `paypal`, `metamask`, `coinbase`. Also block lookalikes — `paypa1`, `rnetamask`, Cyrillic characters.
-- The subdomain root lists the user's published pages (always on). Unknown usernames and users with zero published pages get the identical 404. Unpublished drafts never appear.
+- The subdomain root lists the user's published pages (always on), in the owner's chosen order (see "Page order"). Unknown usernames and users with zero published pages get the identical 404. Unpublished drafts never appear.
 
 ## Key Features
 
@@ -59,6 +59,28 @@ In MVP, I need:
 - A commit snapshots the draft (message required, versions v1, v2, …). Commits are immutable.
 - Production is a pointer to one commit ("Make live" / "Unpublish" in the timeline). Rollback = make an older commit live.
 - Restoring a commit overwrites the draft; the UI confirms first when uncommitted changes would be lost.
+
+## Page order
+
+- One manual order drives both surfaces: `project.sort_order` (ascending)
+  sorts the dashboard list and the subdomain index alike. Drafts hold their
+  slot in the dashboard but never appear publicly.
+- No backfill: existing rows sit at the default (0) and reads tie-break on
+  recency (dashboard: `updatedAt`, index: `publishedAt`), so accounts that
+  never reorder keep the old ordering. The first reorder persists the list
+  as currently shown.
+- New pages land on top: creation inserts with `min(sort_order) - 1` per
+  user (same subquery pattern as `commit.v`).
+- Reordering: drag the ⠿ handle on `/app` (pointer events, works on touch;
+  the handle is focusable and arrow keys move the row). Settled changes are
+  debounced into one `POST /api/projects/reorder` with the full ordered id
+  list; the action rewrites positions 0..n in a transaction, owner-scoped
+  per id. It's lenient about drift — deleted ids are skipped, unmentioned
+  projects keep their slot — and the client is optimistic, reverting to the
+  last confirmed order on failure.
+- A reorder is not an edit: `updatedAt` is deliberately left untouched, so
+  the admin views' recent-activity sort stays meaningful (admin project
+  lists keep sorting by `updatedAt`, not the owner's manual order).
 
 ## Credits
 
