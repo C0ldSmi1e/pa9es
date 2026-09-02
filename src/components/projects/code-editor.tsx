@@ -12,12 +12,14 @@ const CodeEditor = ({
   onSave,
   wrap,
   vim,
+  readOnly,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSave: () => void;
   wrap: boolean;
   vim: boolean;
+  readOnly: boolean;
 }) => {
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const vimModeRef = useRef<VimMode | null>(null);
@@ -73,6 +75,7 @@ const CodeEditor = ({
             automaticLayout: true,
             scrollBeyondLastLine: false,
             padding: { top: 10 },
+            readOnly,
           }}
         />
       </div>

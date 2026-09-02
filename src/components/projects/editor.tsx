@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { content } from "@/src/config/constants";
+import { ai, content } from "@/src/config/constants";
 import { api } from "@/src/lib/api";
 import type {
   CommitDetail,
@@ -43,6 +43,11 @@ const formatBytes = (n: number): string =>
     ? `${(n / (1024 * 1024)).toFixed(1).replace(/\.0$/, "")} MB`
     : `${Math.ceil(n / 1024)} KB`;
 
+// Models sometimes fence output in markdown despite instructions; strip a
+// leading fence as soon as it streams in and a trailing one at the end.
+const stripFences = (text: string): string =>
+  text.replace(/^\s*```[a-z]*\r?\n?/i, "").replace(/\n?```\s*$/, "");
+
 const Editor = ({
   initial,
   initialCommits,
@@ -73,6 +78,8 @@ const Editor = ({
   const [draft, setDraft] = useState(initial.draftHtml);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [gearOpen, setGearOpen] = useState(false);
+  const [aiInstruction, setAiInstruction] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
 
   // Refs so timers and Monaco callbacks always see current values.
   const draftRef = useRef(initial.draftHtml);
@@ -86,6 +93,7 @@ const Editor = ({
   const selectionRef = useRef("draft");
   const commitHtmlCache = useRef(new Map<string, string>());
   const editorPaneRef = useRef<HTMLDivElement>(null);
+  const aiAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     selectionRef.current = selection;
@@ -390,6 +398,99 @@ const Editor = ({
     }
   };
 
+  // Ask-AI: streams a rewritten draft into the editor. A dirty draft gets a
+  // snapshot commit first, so restore is the undo for whatever the model
+  // does; the pre-edit draft comes back on failure or cancel.
+  const doAiEdit = async () => {
+    const instruction = aiInstruction.trim();
+    if (!instruction || aiBusy) return;
+    setError(null);
+
+    if (uncommitted) {
+      const ok = await doCommit("chore: snapshot before ai edit");
+      if (!ok) return;
+    } else {
+      await flushSave();
+      if (
+        draftRef.current !== syncedDraftRef.current ||
+        titleRef.current !== syncedTitleRef.current
+      ) {
+        setError("Draft isn't saved — resolve the save error first");
+        return;
+      }
+    }
+
+    const before = draftRef.current;
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+    setAiBusy(true);
+    setBusy(true);
+    if (selectionRef.current !== "draft") setSelection("draft");
+
+    const showDraft = (html: string) => {
+      setDraft(html);
+      setPreview({ html, label: "Draft" });
+    };
+
+    try {
+      const response = await fetch(`/api/projects/${initial.id}/ai/edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction }),
+        signal: controller.signal,
+      });
+      if (!response.ok || !response.body) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error ?? "AI edit failed");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let received = "";
+      let lastPaintAt = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += decoder.decode(value, { stream: true });
+        // Throttled repaint — Monaco copes, but srcdoc re-parses fully.
+        const now = Date.now();
+        if (now - lastPaintAt > 300) {
+          lastPaintAt = now;
+          showDraft(stripFences(received));
+        }
+      }
+      received += decoder.decode();
+
+      const final = stripFences(received).trim();
+      if (final === "") {
+        throw new Error("AI returned nothing — try again");
+      }
+      draftRef.current = final;
+      setDraftBytes(draftByteSize(final));
+      setUncommitted(true);
+      showDraft(final);
+      setAiInstruction("");
+      void flushSave();
+    } catch (requestError) {
+      // Failure or cancel: the server never wrote anything, so restoring
+      // the pre-edit draft puts editor and server back in sync.
+      draftRef.current = before;
+      setDraftBytes(draftByteSize(before));
+      showDraft(before);
+      if (!controller.signal.aborted) {
+        setError(
+          requestError instanceof Error ? requestError.message : "AI edit failed",
+        );
+      }
+    } finally {
+      aiAbortRef.current = null;
+      setAiBusy(false);
+      setBusy(false);
+    }
+  };
+
   // Status chip.
   const live = commits.find((c) => c.id === liveCommitId) ?? null;
   const latest = commits[0] ?? null;
@@ -524,6 +625,35 @@ const Editor = ({
           className={`min-w-[180px] flex-col ${prefs.showEditor ? "flex" : "hidden"}`}
           style={{ flexBasis: prefs.showPreview ? "44%" : "100%" }}
         >
+          <div className="flex shrink-0 items-center gap-1.5 border-b border-edge bg-panel px-2 py-1.5">
+            <input
+              value={aiInstruction}
+              onChange={(e) => setAiInstruction(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void doAiEdit();
+              }}
+              placeholder="✨ ask ai — a change, or a whole page"
+              disabled={aiBusy}
+              maxLength={ai.edit.maxInstructionChars}
+              className="min-w-0 flex-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-ink outline-none transition-colors placeholder:text-faint focus:border-accent disabled:opacity-60"
+            />
+            {aiBusy ? (
+              <button
+                onClick={() => aiAbortRef.current?.abort()}
+                className="shrink-0 rounded-md border border-danger px-2.5 py-1 font-mono text-[11px] text-danger transition-colors hover:bg-danger hover:text-white"
+              >
+                stop
+              </button>
+            ) : (
+              <button
+                onClick={() => void doAiEdit()}
+                disabled={busy || aiInstruction.trim() === ""}
+                className="shrink-0 rounded-md bg-ink px-2.5 py-1 font-mono text-[11px] text-panel transition hover:opacity-85 disabled:opacity-40"
+              >
+                go
+              </button>
+            )}
+          </div>
           <CodeEditor
             value={draft}
             onChange={onDraftChange}
@@ -533,6 +663,7 @@ const Editor = ({
             }}
             wrap={prefs.wrap}
             vim={prefs.vim}
+            readOnly={aiBusy}
           />
         </div>
         {prefs.showEditor && prefs.showPreview && (

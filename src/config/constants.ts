@@ -24,6 +24,13 @@ export const ai = {
   // Per-feature model choice is config, not code (docs/ai-features.md).
   models: {
     commitMessage: "claude-opus-5",
+    edit: "claude-opus-5",
+  },
+  edit: {
+    maxInstructionChars: 2000,
+    // An edit sends the whole draft and regenerates it — cap what we ask
+    // the model to rewrite (well under content.maxHtmlBytes).
+    maxDraftBytes: 256 * 1024,
   },
   // Per user, per action. The only usage guard while AI is free.
   rateLimit: {
