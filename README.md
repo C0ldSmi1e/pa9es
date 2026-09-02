@@ -22,13 +22,14 @@ bun install
 cat > .env <<EOF
 BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 BETTER_AUTH_URL=http://localhost:3000
+ANTHROPIC_API_KEY=<your Anthropic API key>
 EOF
 
 bun run db:migrate
 bun run dev
 ```
 
-Open http://localhost:3000. Without `RESEND_API_KEY`, verification emails are logged to the server console. Full env schema: `src/server/env.ts`.
+Open http://localhost:3000. `ANTHROPIC_API_KEY` needs a real [Anthropic API key](https://console.anthropic.com/) — AI features are core, so the app refuses to start without one. Without `RESEND_API_KEY`, verification emails are logged to the server console. Full env schema: `src/server/env.ts`.
 
 ## Contributing
 

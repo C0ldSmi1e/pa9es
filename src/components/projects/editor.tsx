@@ -267,6 +267,26 @@ const Editor = ({
     [commits, liveCommitId, initial.id],
   );
 
+  // AI commit message: the server describes ITS draft, so flush the
+  // autosave first — same reasoning as doCommit. Advisory, so an out-of-sync
+  // draft (blocked save) doesn't hard-stop the suggestion.
+  const suggestMessage = async (): Promise<string | null> => {
+    setError(null);
+    try {
+      await flushSave();
+      const { message } = await api<{ message: string }>(
+        `/api/projects/${initial.id}/ai/commit-message`,
+        { method: "POST" },
+      );
+      return message;
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "Suggestion failed",
+      );
+      return null;
+    }
+  };
+
   // Timeline actions.
   const doCommit = async (message: string): Promise<boolean> => {
     setBusy(true);
@@ -539,6 +559,7 @@ const Editor = ({
             pulseId={pulseId}
             onSelect={(next) => void select(next)}
             onCommit={doCommit}
+            onSuggestMessage={suggestMessage}
             onMakeLive={(id) => void doMakeLive(id)}
             onUnpublish={() => void doUnpublish()}
             onRestore={requestRestore}

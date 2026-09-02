@@ -30,6 +30,7 @@ const Timeline = ({
   pulseId,
   onSelect,
   onCommit,
+  onSuggestMessage,
   onMakeLive,
   onUnpublish,
   onRestore,
@@ -43,6 +44,7 @@ const Timeline = ({
   pulseId: string | null;
   onSelect: (selection: string) => void;
   onCommit: (message: string) => Promise<boolean>;
+  onSuggestMessage: () => Promise<string | null>;
   onMakeLive: (commitId: string) => void;
   onUnpublish: () => void;
   onRestore: (commit: CommitSummary) => void;
@@ -50,11 +52,23 @@ const Timeline = ({
   const [committing, setCommitting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageMissing, setMessageMissing] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (committing) inputRef.current?.focus();
   }, [committing]);
+
+  const suggest = async () => {
+    setSuggesting(true);
+    const suggestion = await onSuggestMessage();
+    if (suggestion !== null) {
+      setMessage(suggestion);
+      setMessageMissing(false);
+      inputRef.current?.focus();
+    }
+    setSuggesting(false);
+  };
 
   const submit = async () => {
     const trimmed = message.trim();
@@ -97,31 +111,40 @@ const Timeline = ({
           {selection === "draft" && (
             <div className="mt-2" onClick={(e) => e.stopPropagation()}>
               {committing ? (
-                <input
-                  ref={inputRef}
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value);
-                    setMessageMissing(false);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void submit();
-                    if (e.key === "Escape") {
-                      setCommitting(false);
-                      setMessage("");
+                <>
+                  <input
+                    ref={inputRef}
+                    value={message}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
                       setMessageMissing(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void submit();
+                      if (e.key === "Escape") {
+                        setCommitting(false);
+                        setMessage("");
+                        setMessageMissing(false);
+                      }
+                    }}
+                    placeholder={
+                      messageMissing ? "Message required" : "Commit message…"
                     }
-                  }}
-                  placeholder={
-                    messageMissing ? "Message required" : "Commit message…"
-                  }
-                  className={`w-full rounded-md border bg-panel px-2 py-1 text-xs text-ink outline-none ${
-                    messageMissing
-                      ? "border-danger placeholder:text-danger/60"
-                      : "border-accent placeholder:text-faint"
-                  }`}
-                  maxLength={200}
-                />
+                    className={`w-full rounded-md border bg-panel px-2 py-1 text-xs text-ink outline-none ${
+                      messageMissing
+                        ? "border-danger placeholder:text-danger/60"
+                        : "border-accent placeholder:text-faint"
+                    }`}
+                    maxLength={200}
+                  />
+                  <button
+                    className="mt-1 font-mono text-[11px] text-dim transition-colors hover:text-accent disabled:opacity-50"
+                    disabled={busy || suggesting}
+                    onClick={() => void suggest()}
+                  >
+                    {suggesting ? "✨ thinking…" : "✨ suggest message"}
+                  </button>
+                </>
               ) : (
                 <button
                   className={tinyPrimary}

@@ -11,6 +11,9 @@ const envSchema = z
     // Host (with port in dev) that user subdomains hang off of:
     // <username>.ROOT_DOMAIN. "pa9es.com" in production.
     ROOT_DOMAIN: z.string().min(1).default("localhost:3000"),
+    // AI features are core (docs/ai-features.md): a missing key fails
+    // startup rather than silently hiding features.
+    ANTHROPIC_API_KEY: z.string().min(1, "required — AI features are core"),
     // Transactional email (Resend). Optional so dev works without an account
     RESEND_API_KEY: z.preprocess(
       (value) => (value === "" ? undefined : value),
@@ -63,4 +66,8 @@ export const app = {
 export const emailConfig = {
   apiKey: env.RESEND_API_KEY,
   from: env.EMAIL_FROM,
+};
+
+export const aiConfig = {
+  apiKey: env.ANTHROPIC_API_KEY,
 };

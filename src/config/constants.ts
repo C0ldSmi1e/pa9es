@@ -19,3 +19,15 @@ export const referrals = {
   referrerBonus: 500,
   maxRewards: 20,
 };
+
+export const ai = {
+  // Per-feature model choice is config, not code (docs/ai-features.md).
+  models: {
+    commitMessage: "claude-opus-5",
+  },
+  // Per user, per action. The only usage guard while AI is free.
+  rateLimit: {
+    windowSec: 60,
+    maxRequests: 10,
+  },
+};

@@ -14,7 +14,9 @@
     "postinstall": "bun scripts/copy-monaco.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.48",
     "@monaco-editor/react": "^4.7.0",
+    "ai": "^7.0.90",
     "better-auth": "^1.6.26",
     "drizzle-orm": "1.0.0-rc.4",
     "monaco-editor": "^0.56.0",

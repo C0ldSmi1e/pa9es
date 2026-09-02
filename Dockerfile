@@ -14,7 +14,8 @@ RUN bun scripts/copy-monaco.ts
 # build-time placeholders only; real values come from compose env_file
 ENV NODE_ENV=production \
     BETTER_AUTH_SECRET="insecure-build-time-placeholder-32-chars-min" \
-    BETTER_AUTH_URL="http://localhost:3000"
+    BETTER_AUTH_URL="http://localhost:3000" \
+    ANTHROPIC_API_KEY="build-time-placeholder"
 RUN bun run build
 
 FROM oven/bun:1-alpine AS runner
